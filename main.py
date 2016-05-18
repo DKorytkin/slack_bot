@@ -25,7 +25,7 @@ def is_text(text):
         return text[0]['text'].lower()
     except:
         edit_message = text[0]['message']
-        return edit_message['text']
+        return edit_message['text'].lower()
 
 
 def is_date(text):
