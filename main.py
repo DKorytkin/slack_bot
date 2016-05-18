@@ -23,7 +23,7 @@ def is_message(text):
 def is_text(text):
     try:
         return text[0]['text'].lower()
-    except KeyError:
+    except:
         edit_message = text[0]['message']
         return edit_message['text']
 
