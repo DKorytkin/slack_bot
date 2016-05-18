@@ -5,7 +5,7 @@ __author__ = 'Denis'
 
 import time
 import json
-from token import SLACK_TOKEN
+from slack_token import SLACK_TOKEN
 from slackclient import SlackClient
 
 
@@ -15,20 +15,25 @@ questions_keys = list(questions.keys())
 
 
 def is_message(text):
-    if text[0]['type'] == 'message':
-        return text[0]
+    if text:
+        if text[0]['type'] == 'message':
+            return text[0]
 
 
 def is_text(text):
-    return text[0]['text'].lower()
+    try:
+        return text[0]['text'].lower()
+    except KeyError:
+        edit_message = text[0]['message']
+        return edit_message['text']
 
 
 sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
 
     while True:
-        if sc.rtm_read():
-            req = sc.rtm_read()
+        req = sc.rtm_read()
+        if req:
             if is_message(req):
                 print(req)
                 time.sleep(1)
