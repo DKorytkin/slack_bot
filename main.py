@@ -2,12 +2,12 @@
 #  -*- coding: utf8 -*-
 __author__ = 'Denis'
 
-import requests
-import time
-import json
 from slack_token import SLACK_TOKEN
 from slackclient import SlackClient
 from datetime import datetime
+import time
+import json
+import requests
 
 
 with open('questions.json', 'r') as file_questions:
@@ -16,6 +16,10 @@ questions_keys = list(questions.keys())
 
 
 def is_message(text):
+    """
+    text it's request
+    filter request have message
+    """
     if not text:
         pass
     if text[0]['type'] == 'message':
@@ -23,11 +27,19 @@ def is_message(text):
 
 
 def is_channel(text):
+    """
+    text it's request
+    filter by one channel
+    """
     if text[0]['channel'] == 'G0MGYKMA8':
         return text
 
 
 def is_text(text):
+    """
+    text convert to lower case
+    KeyError if message edited
+    """
     try:
         return text[0]['text'].lower()
     except KeyError:
@@ -36,6 +48,9 @@ def is_text(text):
 
 
 def is_date(text):
+    """
+    convert timestamp to datetime
+    """
     return datetime.fromtimestamp(float(text[0]['ts']))
 
 
@@ -50,16 +65,13 @@ if sc.rtm_connect():
             continue
         if not is_channel(req):
             continue
-        print(req)
-        print(is_date(req).today(), datetime.now())
-        # if is_date(req).today() <= datetime.now():
-        #     continue
+        if is_date(req) < datetime.now():
+            continue
         print(req)
         if is_text(req) not in questions_keys:
             continue
 
         time.sleep(1)
-
 
         key = is_text(req)
         sc.api_call(
