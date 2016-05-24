@@ -7,7 +7,7 @@ from slackclient import SlackClient
 from datetime import datetime
 import time
 import json
-from conect_url import get_request, get_mario_gif, MARIO_GIF
+from conect_url import get_mario_gif, get_version_prod
 import re
 import requests
 
@@ -84,16 +84,19 @@ sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
 
     while True:
+        result = None
         req = sc.rtm_read()
         if not req:
             continue
-        print(req)
         if not is_message(req) or not is_user(req) or not is_channel(req):
             continue
-        if is_date(req) < datetime.now():
-            continue
+        print(req)
+        # if is_date(req) < datetime.now():
+        #     continue
         if req[0]['text'] == '<@{}>:'.format(ID_MARIO):
-            result = get_mario_gif(get_request(MARIO_GIF))
+            result = get_mario_gif()
+        if req[0]['text'] == 'prod':
+            result = get_version_prod()
         # if is_text(req) not in questions_keys:
         #     continue
 
@@ -102,11 +105,13 @@ if sc.rtm_connect():
         # test = re.search(pattern=pattern, string=req[0]['text'], flags=re.IGNORECASE)
         # print('TEST', test.group(1), test.group(2), test.group(3))
 
+        # add user typing {'type': 'user_typing', 'user': 'U0DF0B546', 'channel': 'G0MGYKMA8'}
         key = is_text(req)
+        # result = questions[key]
         sc.api_call(
             'chat.postMessage',
             channel=ID_CHANNEL_CONTENT,
-            text='<@{}> {}'.format(req[0]['user'], result),
+            text='<@{}> {}'.format(req[0]['user'], result if result else questions[key]),
             username='Mario',
             icon_emoji=':mario:',
         )
