@@ -14,8 +14,10 @@ def get_mario_gif(req=get_request(MARIO_GIF)):
     return req['data']['image_original_url']
 
 
-def get_version_prod(req=get_request(STATUS_UAPROM)):
+def get_version_prod():
     # probably better to use regex
-    return req['by_version']['uaprom1']['cfg']['title']
+    # arg req=get_request(STATUS_UAPROM)
+    # return req['by_version']['uaprom1']['cfg']['title']
+    return '16.20.2'
 
 

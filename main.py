@@ -1,20 +1,20 @@
 #!/usr/bin/python3
-#  -*- coding: utf8 -*-
+#  -*- coding: utf-8 -*-
 __author__ = 'Denis'
 
 from slack_token import SLACK_TOKEN
 from slackclient import SlackClient
 from datetime import datetime
+from requests_bot import requests_bot_keys, requests_for_bot
 import time
 import json
-from conect_url import get_mario_gif, get_version_prod
-import re
-import requests
+
 
 ID_CHANNEL_CONTENT = 'G0MGYKMA8'
 ID_MARIO = 'U1ANC9117'
 ID_TEAM = 'T0DF1FYHE'
 ID_MY = 'U0DF0B546'
+bot_id = 'B19M4PG3Z'
 
 with open('questions.json', 'r') as file_questions:
     questions = json.load(file_questions)
@@ -29,7 +29,7 @@ def is_message(text):
     if not text:
         pass
     if text[0]['type'] == 'message':
-        return text[0]
+        return text[0]['type']
 
 
 def is_channel(text):
@@ -38,7 +38,7 @@ def is_channel(text):
     filter by one channel
     """
     if text[0]['channel'] == 'G0MGYKMA8':
-        return text
+        return text[0]['channel']
 
 
 def is_text(text):
@@ -60,6 +60,13 @@ def is_date(text):
     return datetime.fromtimestamp(float(text[0]['ts']))
 
 
+def is_bot_message(text):
+    try:
+        return text[0]['bot_id']
+    except KeyError:
+        return False
+
+
 def is_user(text):
     """
     filter message by user
@@ -67,17 +74,36 @@ def is_user(text):
     try:
         return text[0]['user']
     except KeyError:
-        pass
+        edit_message = text[0]['message']
+        return edit_message['user']
 
 
 class Message:
     def __init__(self, req):
-        self.type = req[0]['type']
-        self.channel = req[0]['channel']
-        self.user = req[0]['user']
-        self.team = req[0]['team']
-        self.date_create = is_date(req[0]['ts'])
-        self.text = req[0]['message']
+        self.type = is_message(req)
+        self.channel = is_channel(req)
+        self.user = is_user(req)
+        self.date_create = is_date(req)
+        self.text = is_text(req)
+
+
+def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
+    sc.api_call(
+        'chat.postMessage',
+        channel=channel,
+        text='<@{}> {}'.format(new_message.user, bot_message),
+        username='Mario',
+        icon_emoji=':mario:'
+    )
+
+
+def bot_typing(bot_id=ID_MARIO, channel=ID_CHANNEL_CONTENT):
+    sc.api_call(
+        'event',
+        channel=channel,
+        type='user_typing',
+        user=bot_id,
+    )
 
 
 sc = SlackClient(SLACK_TOKEN)
@@ -88,36 +114,30 @@ if sc.rtm_connect():
         req = sc.rtm_read()
         if not req:
             continue
+        print(req)
+        if is_bot_message(req):
+            continue
         if not is_message(req) or not is_user(req) or not is_channel(req):
             continue
-        print(req)
-        # if is_date(req) < datetime.now():
-        #     continue
-        if req[0]['text'] == '<@{}>:'.format(ID_MARIO):
-            result = get_mario_gif()
-        if req[0]['text'] == 'prod':
-            result = get_version_prod()
-        # if is_text(req) not in questions_keys:
-        #     continue
 
-        time.sleep(1)
+        new_message = Message(req)
+        print(new_message.text)
+
+        if new_message.text in requests_bot_keys:
+            result = requests_for_bot[new_message.text]
+
+        if new_message.text in questions_keys:
+            result = questions[new_message.text]
+
         # pattern = '(.*)?(<@{}>:).?(\w+.\w+)?.?'.format(ID_MARIO)
         # test = re.search(pattern=pattern, string=req[0]['text'], flags=re.IGNORECASE)
         # print('TEST', test.group(1), test.group(2), test.group(3))
 
-        # add user typing {'type': 'user_typing', 'user': 'U0DF0B546', 'channel': 'G0MGYKMA8'}
-        key = is_text(req)
-        # result = questions[key]
-        sc.api_call(
-            'chat.postMessage',
-            channel=ID_CHANNEL_CONTENT,
-            text='<@{}> {}'.format(req[0]['user'], result if result else questions[key]),
-            username='Mario',
-            icon_emoji=':mario:',
-        )
+        if result:
+            bot_typing()
+            time.sleep(1)
+            send_message(bot_message=result)
 else:
     print("Connection Failed, invalid token?")
 
 
-# print(sc.api_call('api.test'))
-# print(sc.api_call('im.open', user='U0DF0B546'))

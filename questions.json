@@ -2,6 +2,5 @@
   "������": "������, ��� ����?",
   "���������, � � ����?": "� ���� ���� ��� �����!",
   "����": "����� �������",
-  "default": "16.20.1",
   "help": "\n`default` - _view Default version_\n`video` - _random youtube video_\n`weather` - _weather now_\n`gif` - _get gif_\n_coming soon_"
 }
