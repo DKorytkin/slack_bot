@@ -26,10 +26,10 @@ def is_message(text):
     text it's request
     filter request have message
     """
-    if not text:
-        pass
-    if text[0]['type'] == 'message':
-        return text[0]['type']
+    if 'type' in text[0]:
+        if text[0]['type'] == 'message':
+            return text[0]['type']
+    return None
 
 
 def is_channel(text):
@@ -37,8 +37,10 @@ def is_channel(text):
     text it's request
     filter by one channel
     """
-    if text[0]['channel'] == 'G0MGYKMA8':
-        return text[0]['channel']
+    if 'channel' in text[0]:
+        if text[0]['channel'] == 'G0MGYKMA8':
+            return text[0]['channel']
+    return None
 
 
 def is_text(text):
@@ -46,11 +48,12 @@ def is_text(text):
     text convert to lower case
     KeyError if message edited
     """
-    try:
+    if 'subtype' in text[0]:
+        if text[0]['subtype'] == 'message_changed':
+            edit_message = text[0]['message']
+            return edit_message['text'].lower()
+    if 'text' in text[0]:
         return text[0]['text'].lower()
-    except KeyError:
-        edit_message = text[0]['message']
-        return edit_message['text'].lower()
 
 
 def is_date(text):
@@ -60,22 +63,17 @@ def is_date(text):
     return datetime.fromtimestamp(float(text[0]['ts']))
 
 
-def is_bot_message(text):
-    try:
-        return text[0]['bot_id']
-    except KeyError:
-        return False
-
-
 def is_user(text):
     """
     filter message by user
     """
-    try:
+    if 'subtype' in text[0]:
+        if text[0]['subtype'] == 'message_changed':
+            edit_message = text[0]['message']
+            if 'user' in edit_message:
+                return edit_message['user']
+    if 'user' in text[0]:
         return text[0]['user']
-    except KeyError:
-        edit_message = text[0]['message']
-        return edit_message['user']
 
 
 class Message:
@@ -99,7 +97,7 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
 
 def bot_typing(bot_id=ID_MARIO, channel=ID_CHANNEL_CONTENT):
     sc.api_call(
-        'event',
+        'chat.postMessage',
         channel=channel,
         type='user_typing',
         user=bot_id,
@@ -115,9 +113,12 @@ if sc.rtm_connect():
         if not req:
             continue
         print(req)
-        if is_bot_message(req):
+
+        if not is_message(req):
             continue
-        if not is_message(req) or not is_user(req) or not is_channel(req):
+        if not is_user(req):
+            continue
+        if not is_channel(req):
             continue
 
         new_message = Message(req)
