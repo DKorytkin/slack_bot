@@ -16,7 +16,6 @@ requests_for_bot = {
         kazprom=get_version_prod('kzprom'),
         mdprom=get_version_prod('mdprom')
     ),
-    'gif': get_mario_gif(),
 }
 
 requests_bot_keys = list(requests_for_bot.keys())

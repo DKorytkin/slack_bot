@@ -6,6 +6,7 @@ from slack_token import SLACK_TOKEN
 from slackclient import SlackClient
 from datetime import datetime
 from requests_bot import requests_bot_keys, requests_for_bot
+from conect_url import request_gif, get_mario_gif
 import time
 import json
 
@@ -98,8 +99,8 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
 def bot_typing(bot_id=ID_MARIO, channel=ID_CHANNEL_CONTENT):
     sc.api_call(
         'chat.postMessage',
-        channel=channel,
         type='user_typing',
+        channel=channel,
         user=bot_id,
     )
 
@@ -130,9 +131,8 @@ if sc.rtm_connect():
         if new_message.text in questions_keys:
             result = questions[new_message.text]
 
-        # pattern = '(.*)?(<@{}>:).?(\w+.\w+)?.?'.format(ID_MARIO)
-        # test = re.search(pattern=pattern, string=req[0]['text'], flags=re.IGNORECASE)
-        # print('TEST', test.group(1), test.group(2), test.group(3))
+        if 'gif' in new_message.text:
+            result = get_mario_gif(request_gif(new_message.text))
 
         if result:
             bot_typing()
