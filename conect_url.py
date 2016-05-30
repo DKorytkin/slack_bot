@@ -40,3 +40,7 @@ def request_gif(text):
             result.append(test.group(i))
     return '+'.join(result)
 
+
+def play_mario():
+    return '<http://www.mario-games-free.net/swf/1.swf|game>'
+

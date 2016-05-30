@@ -1,5 +1,5 @@
 __author__ = 'Denis'
-from conect_url import get_version_prod, get_mario_gif, get_default_version
+from conect_url import get_version_prod, get_default_version
 
 requests_for_bot = {
     'default': '\n `default` - {default}'
@@ -16,6 +16,7 @@ requests_for_bot = {
         kazprom=get_version_prod('kzprom'),
         mdprom=get_version_prod('mdprom')
     ),
+    'game': '<http://www.mario-games-free.net/swf/1.swf|play with me>',
 }
 
 requests_bot_keys = list(requests_for_bot.keys())

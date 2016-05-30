@@ -59,7 +59,7 @@ def is_text(text):
 
 def is_date(text):
     """
-    convert timestamp to datetime
+    convert string timestamp to datetime
     """
     return datetime.fromtimestamp(float(text[0]['ts']))
 
