@@ -6,9 +6,9 @@ from collections import namedtuple
 from datetime import datetime, date
 
 import xlrd
-from jira.client import JIRA
 
 from models import All_bugs, Team, session
+from objects import jira
 
 Vacations = namedtuple('Vacations', ['ids', 'date_start', 'date_over'])
 Issue = namedtuple("Issue", ["title", "priority", "summary", "date_created", "date_resolution", "developer"])
@@ -23,9 +23,6 @@ TEAM = {
 }
 
 FILE_VACATIONS = 'dev_vacations.xls'
-
-basic_auth = ("d.korytkin", "lP53aFH4")
-jira = JIRA(options=dict(server="https://jira.uaprom", verify=False), basic_auth=basic_auth)
 
 
 # сделать проверку по времени, для разных кварталов
