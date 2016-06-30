@@ -1,46 +1,62 @@
 __author__ = 'Denis'
+
+
 import requests
 import re
+from collections import namedtuple
+from slack_token import ID_MARIO
 
+
+Vacations = namedtuple('Vacations', ['dev_name', 'date_start', 'date_over'])
 DEFAULT_VERSION = 'https://bwd.cat/widgets/2'
 
 
 def get_request(url):
     req = requests.get(url=url, verify=False)
-    return req.json()
+    return req
 
 
 def get_mario_gif(req):
     gif_url = 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}'.format(req)
     res = get_request(gif_url)
+    res = res.json()
     return res['data']['image_original_url']
 
 
 def get_version_prod(domen):
     # probably better to use regex
-    # url = 'https://ai.uaprom/stats/{}'.format(domen)
-    # req = get_request(url)
-    # return req['by_version']['{}1'.format(domen)]['cfg']['title']
-    return '16.21.1'
+    url = 'https://ai.uaprom/stats/{}'.format(domen)
+    req = get_request(url)
+    req =req.json()
+    return req['by_version']['{}1'.format(domen)]['cfg']['title']
+
 
 def get_default_version(req=get_request(DEFAULT_VERSION)):
-    return req['text']
+    result = req.json()
+    return result['text']
 
 
 def request_gif(text):
     if text == 'gif':
         return 'super+mario'
     pattern = r'.*?gif.(\w+)+\s?(\w+)?\s?(\w+)?'
-    test = re.search(pattern=pattern, string=text, flags=re.IGNORECASE)
-    print('TEST', test.group())
-    print(test.group(1), test.group(2), test.group(3))
+    text = re.search(pattern=pattern, string=text, flags=re.IGNORECASE)
     result = []
     for i in range(1, 4):
-        if test.group(i):
-            result.append(test.group(i))
+        if text.group(i):
+            result.append(text.group(i))
     return '+'.join(result)
 
 
 def play_mario():
     return '<http://www.mario-games-free.net/swf/1.swf|game>'
+
+
+def parse_vacation(message):
+    # TODO поменять патерн
+    pattern = r'^<@U1ANC9117>:.(\w+)\sв отпуске с (\d{1,2}-\d{1,2}-\d{2,4}) по\s(\d{1,2}-\d{1,2}-\d{2,4})'
+
+    if re.search(pattern=pattern, string=message, flags=re.IGNORECASE):
+        result = re.search(pattern=pattern, string=message, flags=re.IGNORECASE)
+        return Vacations(dev_name=result.group(1), date_start=result.group(2), date_over=result.group(3))
 

@@ -2,22 +2,20 @@
 #  -*- coding: utf-8 -*-
 __author__ = 'Denis'
 
-from slack_token import SLACK_TOKEN
-from slackclient import SlackClient
-from datetime import datetime
-from requests_bot import requests_bot_keys, requests_for_bot
-from conect_url import request_gif, get_mario_gif
-import time
 import json
+import time
+from datetime import datetime
+
+from slackclient import SlackClient
+
+from random_of_lists import run, holidays, day_off
+from conect_url import request_gif, get_mario_gif, parse_vacation
+from parse_data import mario_update_developers_vacations
+from requests_bot import requests_bot_keys, requests_for_bot
+from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
 
 
-ID_CHANNEL_CONTENT = 'G0MGYKMA8'
-ID_MARIO = 'U1ANC9117'
-ID_TEAM = 'T0DF1FYHE'
-ID_MY = 'U0DF0B546'
-bot_id = 'B19M4PG3Z'
-
-with open('questions.json', 'r') as file_questions:
+with open('questions.json', 'r', encoding='utf-8') as file_questions:
     questions = json.load(file_questions)
 questions_keys = list(questions.keys())
 
@@ -87,10 +85,11 @@ class Message:
 
 
 def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
+    time.sleep(1)
     sc.api_call(
         'chat.postMessage',
         channel=channel,
-        text='<@{}> {}'.format(new_message.user, bot_message),
+        text=bot_message,
         username='Mario',
         icon_emoji=':mario:'
     )
@@ -111,10 +110,17 @@ if sc.rtm_connect():
     while True:
         result = None
         req = sc.rtm_read()
+
+        # TODO исправить время
+        # регулярный запуск
+        if datetime.now().strftime('%H:%M:%S') == '08:40:55':
+            send_message(bot_message=run())
+        if datetime.now().strftime("%A") == 'Wednesday' and datetime.now().strftime('%H:%M:%S') == '08:40:55':
+            send_message(bot_message=requests_for_bot['team bugs'])
+
         if not req:
             continue
         print(req)
-
         if not is_message(req):
             continue
         if not is_user(req):
@@ -134,11 +140,15 @@ if sc.rtm_connect():
         if 'gif' in new_message.text:
             result = get_mario_gif(request_gif(new_message.text))
 
+        if parse_vacation(new_message.text):
+            data_vacation = parse_vacation(new_message.text)
+            send_message(bot_message='Sory, my fail))')
+            mario_update_developers_vacations(vacation_data=data_vacation)
+            result = run()
+
         if result:
             bot_typing()
-            time.sleep(1)
             send_message(bot_message=result)
 else:
     print("Connection Failed, invalid token?")
-
 
