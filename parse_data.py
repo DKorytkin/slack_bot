@@ -3,42 +3,15 @@
 __author__ = 'Denis'
 
 from collections import namedtuple
-from datetime import datetime, date
+from datetime import datetime
 
 import xlrd
 
 from models import All_bugs, Team, session
-from objects import jira
+from objects import jira, TEAM, FILE_VACATIONS, issues_filter
 
 Vacations = namedtuple('Vacations', ['ids', 'date_start', 'date_over'])
 Issue = namedtuple("Issue", ["title", "priority", "summary", "date_created", "date_resolution", "developer"])
-
-TEAM = {
-    u'Виталий Харитонский': 1,
-    u'Дмитрий Наконечный': 2,
-    u'Максим Краковян': 3,
-    u'Андрей Кушнир': 4,
-    u'Игорь Топал': 5,
-    u'Александр Танкеев': 6,
-}
-
-FILE_VACATIONS = 'dev_vacations.xls'
-
-
-# сделать проверку по времени, для разных кварталов
-def get_issues_filter():
-    """
-    в зависимости какая сегодня дата выбирает квартал и подставляет даты в фильтр
-    """
-
-    issues_filter = (
-        'project = PR AND '
-        'issuetype = Bug AND'
-        ' created >= 2016-01-01 AND'
-        ' Developer in ("d.nakonechny", "a.tankeev", "a.kushnir", "v.haritonskiy", "m.krakovyan", "i.topal")'
-    )
-
-    return issues_filter
 
 
 def get_issues(filter):
@@ -331,9 +304,9 @@ def update_all_issues():
     tasks = session.query(All_bugs.task_name).all()
     query_task_name = [task.task_name for task in tasks]
     # insert new tasks
-    insert_tasks(get_issues(get_issues_filter()), query_task_name)
+    insert_tasks(get_issues(issues_filter), query_task_name)
     # update foreign key (change developer)
-    update_developers(get_issues(get_issues_filter()), get_existing_issues())
+    update_developers(get_issues(issues_filter), get_existing_issues())
 
     # insert developers
     developers = session.query(Team.name).all()
@@ -348,7 +321,7 @@ def update_all_issues():
         update_team_bugs(developer.id, get_existing_issues())
     update_total_team_bugs()
 
-    update_issue_date_resolution(get_issues(get_issues_filter()), query_task_name)
+    update_issue_date_resolution(get_issues(issues_filter), query_task_name)
 
     elapsed_time_task_in_seconds(get_existing_issues())
 

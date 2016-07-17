@@ -4,11 +4,11 @@ __author__ = 'Denis'
 import requests
 import re
 from collections import namedtuple
+from objects import DEFAULT_VERSION
 from slack_token import ID_MARIO
 
 
 Vacations = namedtuple('Vacations', ['dev_name', 'date_start', 'date_over'])
-DEFAULT_VERSION = 'https://bwd.cat/widgets/2'
 
 
 def get_request(url):

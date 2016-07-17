@@ -8,24 +8,11 @@ from sqlalchemy import func
 
 import requests
 from models import session, Team, EnumEqualPoints, EnumSentry
-
+from objects import CAT_ENDPOINT, DEFAULT_CAT, holidays, day_off
 from parse_data import update_all_issues
 
-CAT_ENDPOINT = "http://random.cat/meow"
-DEFAULT_CAT = "http://media.topito.com/wp-content/uploads/2013/01/code-12.gif"
-equal_type = EnumEqualPoints
-# Список праздников, не рабочих дней
-holidays = [
-    '01.01.16', '07.01.16',
-    '08.03.16',
-    '01.05.16', '03.05.16', '09.05.16',
-    '20.06.16', '28.06.16',
-    '24.08.16',
-    '14.10.16'
-]
 
-# Список выходных Sunday
-day_off = ['Saturday']
+equal_type = EnumEqualPoints
 
 
 def get_random_cat():

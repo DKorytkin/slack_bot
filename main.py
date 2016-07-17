@@ -2,7 +2,6 @@
 #  -*- coding: utf-8 -*-
 __author__ = 'Denis'
 
-import json
 import time
 from datetime import datetime
 
@@ -10,13 +9,12 @@ from slackclient import SlackClient
 
 from random_of_lists import run
 from conect_url import request_gif, get_mario_gif, parse_vacation
-from parse_data import mario_update_developers_vacations, update_all_issues
+from parse_data import mario_update_developers_vacations
 from requests_bot import requests_bot_keys, requests_for_bot
 from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
+from objects import questions
 
 
-with open('questions.json', 'r', encoding='utf-8') as file_questions:
-    questions = json.load(file_questions)
 questions_keys = list(questions.keys())
 
 
