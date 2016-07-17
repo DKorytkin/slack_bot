@@ -49,11 +49,11 @@ def request_gif(text):
 
 
 def play_mario():
-    return '<http://www.mario-games-free.net/swf/1.swf|game>'
+    return '<http://onlajnigry.net/mario.html|play with me>'
 
 
 def parse_vacation(message):
-    # TODO поменять патерн
+    # TODO поменять паттерн ID_MARIO
     pattern = r'^<@U1ANC9117>:.(\w+)\sв отпуске с (\d{1,2}-\d{1,2}-\d{2,4}) по\s(\d{1,2}-\d{1,2}-\d{2,4})'
 
     if re.search(pattern=pattern, string=message, flags=re.IGNORECASE):

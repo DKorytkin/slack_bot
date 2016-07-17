@@ -3,7 +3,7 @@
 __author__ = 'Denis'
 
 from bs4 import BeautifulSoup
-from conect_url import get_version_prod, get_default_version, get_request
+from conect_url import get_version_prod, get_default_version, get_request, play_mario
 from random_of_lists import run
 
 
@@ -66,7 +66,6 @@ def bugs_reminder():
     bugs_qareport = get_danger_bugs()
     danger_bugs = []
     for bug in bugs_qareport:
-        print(bug)
         if is_danger_point(bug):
             sting = '{name} - `{point} points`\n<{url}|{summary}>'.format(
                 name=bugs_qareport[bug]['implementer'],
@@ -93,7 +92,7 @@ requests_for_bot = {
         kazprom=get_version_prod('kzprom'),
         mdprom=get_version_prod('mdprom')
     ),
-    'game': '<http://www.mario-games-free.net/swf/1.swf|play with me>',
+    'game': play_mario(),
     u'дежурный': run(),
     'team bugs': bugs_reminder(),
 }

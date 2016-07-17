@@ -8,9 +8,9 @@ from datetime import datetime
 
 from slackclient import SlackClient
 
-from random_of_lists import run, holidays, day_off
+from random_of_lists import run
 from conect_url import request_gif, get_mario_gif, parse_vacation
-from parse_data import mario_update_developers_vacations
+from parse_data import mario_update_developers_vacations, update_all_issues
 from requests_bot import requests_bot_keys, requests_for_bot
 from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
 
@@ -113,9 +113,9 @@ if sc.rtm_connect():
 
         # TODO исправить время
         # регулярный запуск
-        if datetime.now().strftime('%H:%M:%S') == '08:40:55':
+        if datetime.now().strftime('%H:%M:%S') == '17:35:55':
             send_message(bot_message=run())
-        if datetime.now().strftime("%A") == 'Wednesday' and datetime.now().strftime('%H:%M:%S') == '08:40:55':
+        if datetime.now().strftime("%A") == 'Sunday' and datetime.now().strftime('%H:%M:%S') == '17:36:55':
             send_message(bot_message=requests_for_bot['team bugs'])
 
         if not req:
@@ -142,7 +142,7 @@ if sc.rtm_connect():
 
         if parse_vacation(new_message.text):
             data_vacation = parse_vacation(new_message.text)
-            send_message(bot_message='Sory, my fail))')
+            send_message(bot_message='Sorry, my fail))')
             mario_update_developers_vacations(vacation_data=data_vacation)
             result = run()
 

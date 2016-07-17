@@ -4,15 +4,16 @@ __author__ = 'Denis'
 
 from datetime import datetime
 from math import ceil
+from sqlalchemy import func
 
 import requests
-from models import session, Team
+from models import session, Team, EnumEqualPoints, EnumSentry
 
-from parse_data import elapsed_time_task_in_seconds, get_issues_histories, get_existing_issues
+from parse_data import update_all_issues
 
 CAT_ENDPOINT = "http://random.cat/meow"
 DEFAULT_CAT = "http://media.topito.com/wp-content/uploads/2013/01/code-12.gif"
-
+equal_type = EnumEqualPoints
 # Список праздников, не рабочих дней
 holidays = [
     '01.01.16', '07.01.16',
@@ -23,8 +24,8 @@ holidays = [
     '14.10.16'
 ]
 
-# Список выходных
-day_off = ['Saturday', 'Sunday']
+# Список выходных Sunday
+day_off = ['Saturday']
 
 
 def get_random_cat():
@@ -36,119 +37,119 @@ def get_random_cat():
     return url
 
 
-def run():
+def update_equal_points(query):
     """
-    Если дата сейчас не совпадает с выходными и прзадниками то работаем
     equal_points:
     1 = Одинаковое кол-во поинтов
     2 = Отпуск
     3 = Макс преподает
     """
+    def exception_dev(developers):
+        for developer in developers:
+            # Проверка в четверг для Макса Thursday
+            if datetime.now().strftime('%A') == 'Thursday' and developer.id == 3:
+                session.query(Team).filter(Team.id == developer.id).update({'equal_points': equal_type.teaching}, False)
+            elif developer.date_start is None:
+                session.query(Team).filter(Team.id == developer.id).update({'equal_points': None}, False)
+            elif developer.date_start <= datetime.now().date() <= developer.date_over:
+                session.query(Team).filter(Team.id == developer.id).update({'equal_points': equal_type.vacation}, False)
+            else:
+                session.query(Team).filter(Team.id == developer.id).update({'equal_points': None}, False)
+        session.commit()
+
+    exception_dev(query)
+
+    min_point = session.query((func.min(Team.total))).filter(Team.equal_points == None).scalar()
+    developers = session.query(Team).order_by(Team.total.desc())
+    for dev in developers:
+        # Номинант на дежурство
+        if dev.total == min_point and dev.date_start is None:
+            session.query(Team).filter(Team.id == dev.id).update({'equal_points': equal_type.orderly}, False)
+
+    session.commit()
+
+
+def choose_developer(query, sum_equal_points, sum_sentrys):
+    """
+    if have some developers equal points
+    """
+    for dev in query:
+        if sum_equal_points == sum_sentrys:
+            session.query(Team).update({'sentry': None}, False)
+            session.commit()
+            # winner = dev.name
+            # session.query(Team).filter(Team.id == dev.id).update({'sentry': 1}, False)
+        if dev.equal_points == 1 and dev.sentry is None:
+            winner = dev.name
+            session.query(Team).filter(Team.id == dev.id).update({'sentry': EnumSentry.duty}, False)
+            session.commit()
+            return winner
+
+        # TODO delete this code after test
+        # if query.id == dev_id and query.equal_points == 1 and equal_points == sentrys:
+        #     winner = dev_name
+        #     session.query(Team).update({'sentry': None}, False)
+        #     session.commit()
+        #     session.query(Team).filter(Team.id == dev_id).update({'sentry': 1}, False)
+        #     session.commit()
+        #     flag = True
+        #     break
+        # elif query.id == dev_id and query.equal_points == 1 and query.sentry is None:
+        #     winner = dev_name
+        #     session.query(Team).filter(Team.id == dev_id).update({'sentry': 1}, False)
+        #     session.commit()
+        #     flag = True
+        #     break
+
+
+def run():
+    """
+    Если дата сейчас не совпадает с выходными и праздниками то работаем
+    """
     if datetime.now().strftime("%d.%m.%y") in holidays \
             or datetime.now().strftime("%A") in day_off:
         exit('Holiday')
     else:
-        values_in_db = session.query(Team).all()
-        total_all_team, all_developer = 0, 0
-        all_team = []
-        for value in values_in_db:
-            # Общие поинты
-            total_all_team += value.total
-            # Количество девелоперов
-            all_developer += 1
-            # Проверка в четверг для Макса Thursday
-            if datetime.now().strftime('%A') == 'Thursday' and value.id == 3:
-                session.query(Team).filter(Team.id == value.id).update({'equal_points': 3}, False)
-            # Проверка отпуска
-            elif value.date_start is None:
-                list_team = [value.id, value.name, value.total]
-                all_team.append(list_team)
-                session.query(Team).filter(Team.id == value.id).update({'equal_points': None}, False)
-                continue
-            elif value.date_start <= datetime.now().date() <= value.date_over:
-                session.query(Team).filter(Team.id == value.id).update({'equal_points': 2}, False)
-            else:
-                list_team = [value.id, value.name, value.total]
-                all_team.append(list_team)
-                session.query(Team).filter(Team.id == value.id).update({'equal_points': None}, False)
-            session.commit()
-
-        # среднее по поинтам среди команды
+        update_all_issues()
+        dev_points = session.query(Team).order_by(Team.total.desc())
+        total_all_team = session.query(func.sum(Team.total)).scalar()
+        all_developer = session.query(Team.id).count()
         average = ceil(total_all_team / all_developer)
 
-        # Сортировка по второму значению(total)
-        all_team.sort(key=lambda x: x[2])
+        update_equal_points(dev_points)
 
         # исключить повторения одного человека
-        for point in all_team:
-            if point[2] == all_team[0][2]:
-                session.query(Team).filter(Team.id == point[0]).update({'equal_points': 1}, False)
-            else:
-                session.query(Team).filter(Team.id == point[0]).update({'equal_points': None}, False)
-            session.commit()
-
-        equal_points = 0
-        sentrys = 0
-        count_equal_points_and_sentrys = session.query(Team).all()
-        for query in count_equal_points_and_sentrys:
-            if query.equal_points == 1:
-                equal_points += 1
-            if query.sentry == 1:
-                sentrys += 1
+        sum_equal_points = session.query(func.sum(Team.equal_points)).filter(Team.equal_points == EnumEqualPoints.orderly).scalar()
+        sum_sentrys = session.query(func.sum(Team.sentry)).filter(Team.equal_points == EnumEqualPoints.orderly).scalar()
 
         # Выбор счасливчика с наименьшим кол-вом поинтов
-        winner = []
-        flag = False
         querys = session.query(Team).all()
-        # TODO
-        # переделать, черт ногу сломит
-        for query in querys:
-            for one in all_team:
-                if one[2] <= average:
-                    if query.id == one[0] and query.equal_points == 1 and equal_points <= sentrys:
-                        winner = one[1]
-                        session.query(Team).update({'sentry': None}, False)
-                        session.commit()
-                        session.query(Team).filter(Team.id == one[0]).update({'sentry': 1}, False)
-                        session.commit()
-                        flag = True
-                        break
-                    elif query.id == one[0] and query.equal_points == 1 and query.sentry is None:
-                        winner = one[1]
-                        session.query(Team).filter(Team.id == one[0]).update({'sentry': 1}, False)
-                        session.commit()
-                        flag = True
-                        break
-            if flag:
-                break
+        winner = choose_developer(querys, sum_equal_points, sum_sentrys)
+
         text_strings = [
-            "*Поздравляем!* :tada: {} сегодня дежурный по багам :bug:".format(winner),
-            "_Поинты команды = {}_".format(total_all_team),
-            "_Среднее кол-во поинтов команды = {}_".format(int(average))
+            u'*Поздравляем!* :tada: {} сегодня дежурный по багам :bug:'.format(winner),
+            u'_Поинты команды = {}_'.format(total_all_team),
+            u'_Среднее кол-во поинтов команды = {}_'.format(int(average))
         ]
 
-        team_points = session.query(Team).all()
+        team_points = session.query(Team).order_by(Team.total.desc())
         for point in team_points:
             developer_vacation = ''
             if point.equal_points == 2:
-                developer_vacation = 'Отпуск/Отгул'
+                developer_vacation = u'Отпуск/Отгул'
             elif point.equal_points == 3:
-                developer_vacation = 'Преподает'
+                developer_vacation = u'Преподает'
             text_strings.append('<{url}|{name}> = {point}  {vacation}'.format(
                 url=point.jira_url,
                 name=point.name,
                 point=point.total,
                 vacation=developer_vacation if developer_vacation else ''))
-        # TODO
-        # ссылка на гифку не раскрывается
+        # TODO ссылка на гифку не раскрывается
         # text_strings.append('\n{}'.format(get_random_cat()))
 
         return '\n'.join(text_strings)
 
 
 if __name__ == '__main__':
-    elapsed_time_task_in_seconds(get_existing_issues())
-
-    get_issues_histories(get_existing_issues())
 
     run()

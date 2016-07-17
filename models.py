@@ -2,11 +2,21 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Denis'
 
-from sqlalchemy import Column, String, Integer, ForeignKey, create_engine, DateTime, Date
+from sqlalchemy import Column, String, Integer, ForeignKey, create_engine, DateTime, Date, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
+
+
+class EnumEqualPoints(Enum):
+    orderly = 1
+    vacation = 2
+    teaching = 3
+
+
+class EnumSentry(Enum):
+    duty = 1
 
 
 class All_bugs(Base):

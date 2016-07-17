@@ -70,7 +70,7 @@ def insert_tasks(issues, existing_issue_names):
     for issue in issues:
         if issue.title in existing_issue_names:
             continue
-        developer_id = TEAM[unicode(issue.developer)]
+        developer_id = TEAM[issue.developer]
         # Парсинг даты создания и закрытия таски
         if issue.date_created is not None:
             date_create = format_date(issue.date_created)
@@ -119,7 +119,7 @@ def update_issue_date_resolution(issues, existing_issue_names):
         session.commit()
 
 
-def get_issues_histories(all_issues):
+def update_issues_from_histories(all_issues):
     """
     Достает из истории изменений время смены статусов
     assignee to developer, in dev, ready for test
@@ -152,7 +152,6 @@ def get_issues_histories(all_issues):
 
             for item in history.items:
                 if item.toString == issue.developer_name:
-                    print(issue.developer_name)
                     date_assignee.append(history.created)
                     if date_assignee:
                         ready_for_dev = format_date(date_assignee[0])
@@ -162,7 +161,6 @@ def get_issues_histories(all_issues):
                 if item.toString == 'Ready for dev':
                     date_ready_for_dev.append(history.created)
                     if not date_assignee:
-                        print(date_ready_for_dev[0])
                         ready_for_dev = format_date(date_ready_for_dev[0])
 
                 if history.author.displayName == issue.developer_name and item.toString == 'In dev':
@@ -203,34 +201,21 @@ def parsing_vacation(file):
     Выбирает с файла dev_vacations.xls дату начала и окончания отпуска
     file.xls
     """
-    workbook = xlrd.open_workbook(file.decode(encoding='utf-8'))
+    def format_date_xls(date):
+        date_tuple = xlrd.xldate_as_tuple(date, 0)
+        return datetime(*date_tuple).date()
+
+    team_vacations = []
+
+    workbook = xlrd.open_workbook(file)
     sheet = workbook.sheet_by_index(0)
-    ids_developers_int = []
-    ids_developers = [sheet.cell_value(c, 0) for c in range(1, sheet.nrows)]
-    for ids in ids_developers:
-        ids_developers_int.append(int(ids))
-    # дата начала отпуска
-    dates_start = [sheet.cell_value(c, 2) for c in range(1, sheet.nrows)]
-    date_start_vacation = []
-    for dates_s in dates_start:
-        if dates_s == xlrd.empty_cell.value:
-            date_start_vacation.append(None)
-        else:
-            date_s = xlrd.xldate_as_tuple(dates_s, 0)
-            date = datetime(*date_s)
-            date_start_vacation.append(date.strftime("%d.%m.%Y"))
-    # дата конца отпуска
-    date_over = [sheet.cell_value(c, 3) for c in range(1, sheet.nrows)]
-    date_over_vacation = []
-    for dates_o in date_over:
-        if dates_o == xlrd.empty_cell.value:
-            date_over_vacation.append(None)
-        else:
-            date_o = xlrd.xldate_as_tuple(dates_o, 0)
-            date = datetime(*date_o)
-            date_over_vacation.append(date.strftime("%d.%m.%Y"))
-    team = (Vacations(ids=ids_developers_int, date_start=date_start_vacation, date_over=date_over_vacation))
-    team_vacations = zip(*team)
+    for row in range(1, sheet.nrows):
+        developers_vacation = [sheet.cell_value(row, col) for col in range(0, sheet.ncols)]
+        id_dev = developers_vacation[0]
+        date_start_vacation = format_date_xls(developers_vacation[2]) if developers_vacation[2] else None
+        date_over_vacation = format_date_xls(developers_vacation[3]) if developers_vacation[3] else None
+        team = (Vacations(ids=id_dev, date_start=date_start_vacation, date_over=date_over_vacation))
+        team_vacations.append(team)
     return team_vacations
 
 
@@ -241,41 +226,45 @@ def insert_developers(team, dev_name_overlap):
     dev_name_overlap=проверка на совпадение в базе
     """
     for dev in team:
-        developer_id = TEAM[unicode(dev)]
+        developer_id = TEAM[dev]
         if dev in dev_name_overlap:
             continue
         else:
-            name = Team(developer_id, None, None, None, None, None, None, dev, None, None, None, None)
+            name = Team(developer_id, None, None, None, None, None, None, dev, None, None, None, None, None)
             session.add(name)
     session.commit()
 
 
 def update_developers(issues, get_existing_issues):
+    """
+    Update developers(foreign key) in All_bugs
+    """
     for existing_issue in get_existing_issues:
         for issue in issues:
-            developer_id = TEAM[unicode(issue.developer)]
+            developer_id = TEAM[issue.developer]
             if issue.title == existing_issue.task_name and issue.developer == existing_issue.developer_name:
                 continue
-            session.query(All_bugs).filter(All_bugs.task_name == issue.title) \
-                .update(dict(priority=issue.priority, developer_name=issue.developer, developer_id=developer_id), False)
+            session.query(All_bugs).filter(All_bugs.task_name == issue.title).update(dict(
+                priority=issue.priority,
+                developer_name=issue.developer,
+                developer_id=developer_id
+            ), False)
 
     session.commit()
 
 
 def update_developers_vacations(developer_vacations):
     """
-    Обновляет поля начало и конец отпуска в Team
+    Обновляет поля начало и конец отпуска в Team из файла
     """
     for vacations in developer_vacations:
-        if vacations[1] is not None:
-            start_day, start_month, start_year = vacations[1].split('.')
-            over_day, over_month, over_year = vacations[2].split('.')
-            date_start_vacation = date(int(start_year), int(start_month), int(start_day))
-            date_over_vacations = date(int(over_year), int(over_month), int(over_day))
+        if vacations.date_start is not None:
+            date_start_vacation = vacations.date_start
+            date_over_vacations = vacations.date_over
         else:
             date_start_vacation = None
             date_over_vacations = None
-        session.query(Team).filter(Team.id == vacations[0]).update({
+        session.query(Team).filter(Team.id == vacations.ids).update({
             'date_start': date_start_vacation,
             'date_over': date_over_vacations
         }, False)
@@ -294,11 +283,8 @@ def mario_update_developers_vacations(vacation_data):
             return datetime.strptime(date, '%d-%m-%y')
 
     developers = session.query(Team.id, Team.name).all()
-    print(vacation_data)
-    print('____')
-    print('ST', vacation_data.date_start)
-    print('OV', vacation_data.date_over)
     for developer in developers:
+        # TODO add list names for developer and check in
         if vacation_data.dev_name in developer.name.lower():
             session.query(Team).filter(Team.id == developer.id).update({
                 'date_start': is_date(vacation_data.date_start).date(),
@@ -334,39 +320,40 @@ def update_team_bugs(team_ids, all_bugs):
     session.commit()
 
 
-def update_total_team_bugs(team_ids):
-    count_team_bugs = []
-    team_bugs = session.query(Team).all()
+def update_total_team_bugs():
+    team_bugs = session.query(Team.id, (Team.blocker + Team.critical + Team.major + Team.minor + Team.trivial).label('sum')).all()
     for team_bug in team_bugs:
-        if team_bug.id == team_ids:
-            count_team_bugs = team_bug.blocker + team_bug.critical + team_bug.major + team_bug.minor + team_bug.trivial
-    session.query(Team).filter(Team.id == team_ids).update({'total': count_team_bugs}, False)
+        session.query(Team).filter(Team.id == team_bug.id).update({'total': team_bug.sum}, False)
     session.commit()
 
 
-if __name__ == '__main__':
+def update_all_issues():
     tasks = session.query(All_bugs.task_name).all()
-    query_task_name = []
-    for task in tasks:
-        query_task_name.append(task.task_name)
+    query_task_name = [task.task_name for task in tasks]
+    # insert new tasks
     insert_tasks(get_issues(get_issues_filter()), query_task_name)
+    # update foreign key (change developer)
     update_developers(get_issues(get_issues_filter()), get_existing_issues())
 
+    # insert developers
     developers = session.query(Team.name).all()
-    dev_names = []
-    for developer in developers:
-        dev_names.append(developer.name)
+    dev_names = [developer.name for developer in developers]
     insert_developers(TEAM, dev_names)
 
+    # update vacation from file.xls
     update_developers_vacations(parsing_vacation(FILE_VACATIONS))
-
+    # update bug points
     team_ids = session.query(Team.id).all()
-    for id in team_ids:
-        update_team_bugs(id[0], get_existing_issues())
-        update_total_team_bugs(id[0])
+    for developer in team_ids:
+        update_team_bugs(developer.id, get_existing_issues())
+    update_total_team_bugs()
 
     update_issue_date_resolution(get_issues(get_issues_filter()), query_task_name)
 
     elapsed_time_task_in_seconds(get_existing_issues())
 
-    get_issues_histories(get_existing_issues())
+    update_issues_from_histories(get_existing_issues())
+    # TODO add update type issue (bug to task)!!!
+
+if __name__ == '__main__':
+    update_all_issues()
