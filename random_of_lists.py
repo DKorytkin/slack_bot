@@ -72,22 +72,6 @@ def choose_developer(query, sum_equal_points, sum_sentrys):
             session.commit()
             return winner
 
-        # TODO delete this code after test
-        # if query.id == dev_id and query.equal_points == 1 and equal_points == sentrys:
-        #     winner = dev_name
-        #     session.query(Team).update({'sentry': None}, False)
-        #     session.commit()
-        #     session.query(Team).filter(Team.id == dev_id).update({'sentry': 1}, False)
-        #     session.commit()
-        #     flag = True
-        #     break
-        # elif query.id == dev_id and query.equal_points == 1 and query.sentry is None:
-        #     winner = dev_name
-        #     session.query(Team).filter(Team.id == dev_id).update({'sentry': 1}, False)
-        #     session.commit()
-        #     flag = True
-        #     break
-
 
 def run():
     """
@@ -97,7 +81,8 @@ def run():
             or datetime.now().strftime("%A") in day_off:
         exit('Holiday')
     else:
-        update_all_issues()
+        # TODO uncomment update_all_issues
+        # update_all_issues()
         dev_points = session.query(Team).order_by(Team.total.desc())
         total_all_team = session.query(func.sum(Team.total)).scalar()
         all_developer = session.query(Team.id).count()

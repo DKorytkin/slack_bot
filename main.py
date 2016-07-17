@@ -15,7 +15,7 @@ from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
 from objects import questions
 
 
-questions_keys = list(questions.keys())
+questions_keys = list(questions().keys())
 
 
 def is_message(text):
@@ -111,9 +111,9 @@ if sc.rtm_connect():
 
         # TODO исправить время
         # регулярный запуск
-        if datetime.now().strftime('%H:%M:%S') == '17:35:55':
+        if datetime.now().strftime('%H:%M:%S') == '18:05:55':
             send_message(bot_message=run())
-        if datetime.now().strftime("%A") == 'Sunday' and datetime.now().strftime('%H:%M:%S') == '17:36:55':
+        if datetime.now().strftime("%A") == 'Sunday' and datetime.now().strftime('%H:%M:%S') == '18:06:55':
             send_message(bot_message=requests_for_bot['team bugs'])
 
         if not req:

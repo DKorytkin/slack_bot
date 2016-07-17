@@ -84,12 +84,11 @@ def update_issue_date_resolution(issues, existing_issue_names):
                 # Парсинг даты закрытия таски
                 if issue.date_resolution is not None:
                     date_resolution = format_date(issue.date_resolution)
-                    session.query(All_bugs).filter(All_bugs.task_name == title) \
-                        .update({'date_resolution': date_resolution if date_resolution else None}, False)
-            else:
-                continue
+                    session.query(All_bugs).filter(All_bugs.task_name == title).update({
+                        'date_resolution': date_resolution if date_resolution else None
+                    }, False)
 
-        session.commit()
+    session.commit()
 
 
 def update_issues_from_histories(all_issues):
@@ -151,7 +150,7 @@ def update_issues_from_histories(all_issues):
             'in_dev': in_dev if in_dev else None,
             'ready_for_test': ready_for_test if ready_for_test else None
         }, False)
-        session.commit()
+    session.commit()
 
 
 def elapsed_time_task_in_seconds(all_tasks):
@@ -232,17 +231,12 @@ def update_developers_vacations(developer_vacations):
     """
     for vacations in developer_vacations:
         if vacations.date_start is not None:
-            date_start_vacation = vacations.date_start
-            date_over_vacations = vacations.date_over
-        else:
-            date_start_vacation = None
-            date_over_vacations = None
-        session.query(Team).filter(Team.id == vacations.ids).update({
-            'date_start': date_start_vacation,
-            'date_over': date_over_vacations
-        }, False)
+            session.query(Team).filter(Team.id == vacations.ids).update({
+                'date_start': vacations.date_start,
+                'date_over': vacations.date_over
+            }, False)
 
-        session.commit()
+    session.commit()
 
 
 def mario_update_developers_vacations(vacation_data):
