@@ -7,12 +7,12 @@ from math import ceil
 from sqlalchemy import func
 
 import requests
-from models import session, Team, EnumEqualPoints, EnumSentry
+from models import session, Team, EnumStatus
 from objects import CAT_ENDPOINT, DEFAULT_CAT, holidays, day_off
-from parse_data import update_all_issues
+from parse_data import update_status, choose_developer, update_all_issues
 
 
-equal_type = EnumEqualPoints
+equal_type = EnumStatus
 
 
 def get_random_cat():
@@ -22,55 +22,6 @@ def get_random_cat():
     except:
         url = DEFAULT_CAT
     return url
-
-
-def update_equal_points(query):
-    """
-    equal_points:
-    1 = Одинаковое кол-во поинтов
-    2 = Отпуск
-    3 = Макс преподает
-    """
-    def exception_dev(developers):
-        for developer in developers:
-            # Проверка в четверг для Макса Thursday
-            if datetime.now().strftime('%A') == 'Thursday' and developer.id == 3:
-                session.query(Team).filter(Team.id == developer.id).update({'equal_points': equal_type.teaching}, False)
-            elif developer.date_start is None:
-                session.query(Team).filter(Team.id == developer.id).update({'equal_points': None}, False)
-            elif developer.date_start <= datetime.now().date() <= developer.date_over:
-                session.query(Team).filter(Team.id == developer.id).update({'equal_points': equal_type.vacation}, False)
-            else:
-                session.query(Team).filter(Team.id == developer.id).update({'equal_points': None}, False)
-        session.commit()
-
-    exception_dev(query)
-
-    min_point = session.query((func.min(Team.total))).filter(Team.equal_points == None).scalar()
-    developers = session.query(Team).order_by(Team.total.desc())
-    for dev in developers:
-        # Номинант на дежурство
-        if dev.total == min_point and dev.date_start is None:
-            session.query(Team).filter(Team.id == dev.id).update({'equal_points': equal_type.orderly}, False)
-
-    session.commit()
-
-
-def choose_developer(query, sum_equal_points, sum_sentrys):
-    """
-    if have some developers equal points
-    """
-    for dev in query:
-        if sum_equal_points == sum_sentrys:
-            session.query(Team).update({'sentry': None}, False)
-            session.commit()
-            # winner = dev.name
-            # session.query(Team).filter(Team.id == dev.id).update({'sentry': 1}, False)
-        if dev.equal_points == 1 and dev.sentry is None:
-            winner = dev.name
-            session.query(Team).filter(Team.id == dev.id).update({'sentry': EnumSentry.duty}, False)
-            session.commit()
-            return winner
 
 
 def run():
@@ -88,11 +39,11 @@ def run():
         all_developer = session.query(Team.id).count()
         average = ceil(total_all_team / all_developer)
 
-        update_equal_points(dev_points)
+        update_status(dev_points)
 
         # исключить повторения одного человека
-        sum_equal_points = session.query(func.sum(Team.equal_points)).filter(Team.equal_points == EnumEqualPoints.orderly).scalar()
-        sum_sentrys = session.query(func.sum(Team.sentry)).filter(Team.equal_points == EnumEqualPoints.orderly).scalar()
+        sum_equal_points = session.query(func.sum(Team.status)).filter(Team.status == EnumStatus.orderly).scalar()
+        sum_sentrys = session.query(func.sum(Team.sentry)).filter(Team.status == EnumStatus.orderly).scalar()
 
         # Выбор счасливчика с наименьшим кол-вом поинтов
         querys = session.query(Team).all()
@@ -107,15 +58,16 @@ def run():
         team_points = session.query(Team).order_by(Team.total.desc())
         for point in team_points:
             developer_vacation = ''
-            if point.equal_points == 2:
+            if point.status == EnumStatus.vacation:
                 developer_vacation = u'Отпуск/Отгул'
-            elif point.equal_points == 3:
+            elif point.status == EnumStatus.teaching:
                 developer_vacation = u'Преподает'
             text_strings.append('<{url}|{name}> = {point}  {vacation}'.format(
                 url=point.jira_url,
                 name=point.name,
                 point=point.total,
-                vacation=developer_vacation if developer_vacation else ''))
+                vacation=developer_vacation if developer_vacation else ''
+            ))
         # TODO ссылка на гифку не раскрывается
         # text_strings.append('\n{}'.format(get_random_cat()))
 
@@ -123,5 +75,4 @@ def run():
 
 
 if __name__ == '__main__':
-
     run()

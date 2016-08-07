@@ -93,6 +93,7 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
     )
 
 
+# TODO don't work
 def bot_typing(bot_id=ID_MARIO, channel=ID_CHANNEL_CONTENT):
     sc.api_call(
         'chat.postMessage',
@@ -142,7 +143,6 @@ if sc.rtm_connect():
             data_vacation = parse_vacation(new_message.text)
             send_message(bot_message='Sorry, my fail))')
             mario_update_developers_vacations(vacation_data=data_vacation)
-            result = run()
 
         if result:
             bot_typing()
