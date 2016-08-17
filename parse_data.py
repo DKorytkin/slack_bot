@@ -88,7 +88,7 @@ def insert_tasks(issues, existing_issue_names):
             ready_for_dev=None,
             in_dev=None,
             ready_for_test=None,
-            elapsed_time_for_task_in_hours=None,
+            elapsed_time_for_task_in_seconds=None,
             created=datetime.now().date(),
             developer_id=developer_id,
         )
@@ -273,6 +273,7 @@ def mario_update_developers_vacations(vacation_data):
     """
     Mario обновляет поля начало и конец отпуска в Team
     """
+
     def is_date(date):
         try:
             return datetime.strptime(date, '%d-%m-%Y')
@@ -329,6 +330,7 @@ def update_status(query):
     2 = Отпуск
     3 = Макс преподает
     """
+
     def exception_dev(developers):
         for developer in developers:
             # Проверка в четверг для Макса Thursday
@@ -344,7 +346,7 @@ def update_status(query):
 
     exception_dev(query)
 
-    min_point = session.query((func.min(Team.total))).filter(Team.status == None).scalar()
+    min_point = session.query((func.min(Team.total))).filter(Team.status is None).scalar()
     developers = session.query(Team).order_by(Team.total.desc())
     for dev in developers:
         # Номинант на дежурство
@@ -360,8 +362,8 @@ def get_list_developer_boosts(developer):
     """
     list_developer_bosts = []
     developer_bosts = session.query(BoostVacation).filter(
-            BoostVacation.developer_id == developer.id,
-        )
+        BoostVacation.developer_id == developer.id,
+    )
     for bost in developer_bosts:
         list_developer_bosts.extend(bost.list_issues)
     return list_developer_bosts
@@ -385,7 +387,7 @@ def get_sum_points(list_bug_ids):
         elif bug.priority == 'Trivial':
             trivial += 1
     count = [blocker, critical, major, minor, trivial]
-    return sum(count)
+    return count
 
 
 def update_developers_boost():
@@ -393,14 +395,15 @@ def update_developers_boost():
     Update Team.vacation_boost
     """
     developers = session.query(Team).all()
-    count_developers = len(developers)
     for developer in developers:
         developer_boost = get_list_developer_boosts(developer)
+        count_developers = len(developers)
         if not developer_boost:
             continue
         sum_points = get_sum_points(developer_boost)
         dev_id = developer.id
-        point = int(sum_points / count_developers)
+        # TODO update formula from statistics import median
+        point = int(sum(sum_points) / count_developers)
         if not point:
             continue
         session.query(Team).filter(Team.id == dev_id).update({
@@ -427,7 +430,8 @@ def choose_developer(query, sum_equal_points, sum_sentrys):
 
 
 def update_total_team_bugs():
-    team_bugs = session.query(Team.id, (Team.blocker + Team.critical + Team.major + Team.minor + Team.trivial).label('sum')).all()
+    team_bugs = session.query(Team.id, (Team.blocker + Team.critical + Team.major + Team.minor + Team.trivial).label(
+        'sum')).all()
     for team_bug in team_bugs:
         session.query(Team).filter(Team.id == team_bug.id).update({'total': team_bug.sum}, False)
     session.commit()
@@ -467,6 +471,7 @@ def update_all_issues():
 
     update_issues_from_histories(get_existing_issues())
     # TODO add update type issue (bug to task)!!!
+
 
 if __name__ == '__main__':
     update_all_issues()
