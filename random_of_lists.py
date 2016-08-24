@@ -4,9 +4,10 @@ __author__ = 'Denis'
 
 from datetime import datetime
 from math import ceil
+import requests
+
 from sqlalchemy import func
 
-import requests
 from models import session, Team, EnumStatus
 from objects import CAT_ENDPOINT, DEFAULT_CAT, holidays, day_off
 from parse_data import update_status, choose_developer, update_all_issues
@@ -34,6 +35,7 @@ def run():
     else:
         # TODO uncomment update_all_issues
         # update_all_issues()
+        # TODO very slow query
         dev_points = session.query(Team).order_by(Team.total.desc())
         total_all_team = session.query(func.sum(Team.total)).scalar()
         all_developer = session.query(Team.id).count()

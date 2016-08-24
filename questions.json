@@ -1,3 +1,0 @@
-{
-  "help": "\n`default` - _view Default version_\n`дежурный` - выдает дежурного по багам :bug:\n`team bugs` - _team bugs > 150 point_\n`@mario NAME в отпуске с 01-01-1900 по 01-02-1900` - _Отмечает отпуск и выдает дежурного по багам_\n`gif` ... - _receive a random GIF on request_\n`game` - _play with Mario_\n_coming soon_"
-}

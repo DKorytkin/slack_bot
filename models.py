@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Denis'
 
+import json
+
 from sqlalchemy import Column, String, Integer, ForeignKey, create_engine, DateTime, Date, Enum, TypeDecorator, Sequence
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import json
 
 
 Base = declarative_base()

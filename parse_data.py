@@ -323,7 +323,7 @@ def update_team_bugs(team_ids, all_bugs):
     session.commit()
 
 
-def update_status(query):
+def update_status(querys):
     """
     status:
     1 = Одинаковое кол-во поинтов
@@ -344,9 +344,9 @@ def update_status(query):
                 session.query(Team).filter(Team.id == developer.id).update({'status': None}, False)
         session.commit()
 
-    exception_dev(query)
+    exception_dev(querys)
 
-    min_point = session.query((func.min(Team.total))).filter(Team.status is None).scalar()
+    min_point = session.query((func.min(Team.total))).filter(Team.status == None).scalar()
     developers = session.query(Team).order_by(Team.total.desc())
     for dev in developers:
         # Номинант на дежурство
@@ -417,12 +417,13 @@ def choose_developer(query, sum_equal_points, sum_sentrys):
     if have some developers equal points
     """
     for dev in query:
+        print(dev)
         if sum_equal_points == sum_sentrys:
             session.query(Team).update({'sentry': None}, False)
             session.commit()
             # winner = dev.name
             # session.query(Team).filter(Team.id == dev.id).update({'sentry': 1}, False)
-        if dev.stasus == EnumStatus.orderly and dev.sentry is None:
+        if dev.status == EnumStatus.orderly and dev.sentry is None:
             winner = dev.name
             session.query(Team).filter(Team.id == dev.id).update({'sentry': EnumSentry.duty}, False)
             session.commit()

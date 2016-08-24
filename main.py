@@ -4,18 +4,19 @@ __author__ = 'Denis'
 
 import time
 from datetime import datetime
+import concurrent.futures
 
 from slackclient import SlackClient
 
 from random_of_lists import run
-from conect_url import request_gif, get_mario_gif, parse_vacation
+from common import request_gif, get_mario_gif, parse_vacation, requests_bot_keys, mario_requests
 from parse_data import mario_update_developers_vacations
-from requests_bot import requests_bot_keys, requests_for_bot
 from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
-from objects import questions
 
 
-questions_keys = list(questions().keys())
+def process_task(task):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        pool.submit(task)
 
 
 def is_message(text):
@@ -115,7 +116,7 @@ if sc.rtm_connect():
         if datetime.now().strftime('%H:%M:%S') == '18:05:55':
             send_message(bot_message=run())
         if datetime.now().strftime("%A") == 'Sunday' and datetime.now().strftime('%H:%M:%S') == '18:06:55':
-            send_message(bot_message=requests_for_bot['team bugs'])
+            send_message(bot_message=mario_requests('team bugs'))
 
         if not req:
             continue
@@ -131,22 +132,15 @@ if sc.rtm_connect():
         print(new_message.text)
 
         if new_message.text in requests_bot_keys:
-            result = requests_for_bot[new_message.text]
-
-        if new_message.text in questions_keys:
-            result = questions[new_message.text]
+            process_task(send_message(mario_requests(new_message.text)))
 
         if 'gif' in new_message.text:
-            result = get_mario_gif(request_gif(new_message.text))
+            process_task(send_message(get_mario_gif(request_gif(new_message.text))))
 
         if parse_vacation(new_message.text):
             data_vacation = parse_vacation(new_message.text)
-            send_message(bot_message='Sorry, my fail))')
-            mario_update_developers_vacations(vacation_data=data_vacation)
+            process_task(send_message(mario_update_developers_vacations(vacation_data=data_vacation)))
 
-        if result:
-            bot_typing()
-            send_message(bot_message=result)
 else:
     print("Connection Failed, invalid token?")
 
