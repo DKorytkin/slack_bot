@@ -4,10 +4,19 @@ __author__ = 'Denis'
 
 import json
 
-from sqlalchemy import Column, String, Integer, ForeignKey, create_engine, DateTime, Date, Enum, TypeDecorator, Sequence
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    ForeignKey,
+    create_engine,
+    DateTime,
+    Date,
+    Enum,
+    TypeDecorator
+)
 
 Base = declarative_base()
 
