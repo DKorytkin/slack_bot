@@ -66,8 +66,10 @@ class AllBugs(Base):
     created = Column(Date)
     developer_id = Column(Integer, ForeignKey('team.id'))
 
-    def __init__(self, task_name, priority, description, developer_name, date_created, date_resolution,
-                 ready_for_dev, in_dev, ready_for_test, elapsed_time_for_task_in_seconds, created, developer_id):
+    def __init__(self, task_name, priority, description, developer_name,
+                 date_created, date_resolution, ready_for_dev, in_dev,
+                 ready_for_test, elapsed_time_for_task_in_seconds,
+                 created, developer_id):
         self.task_name = task_name
         self.priority = priority
         self.description = description
@@ -77,7 +79,8 @@ class AllBugs(Base):
         self.ready_for_dev = ready_for_dev
         self.in_dev = in_dev
         self.ready_for_test = ready_for_test
-        self.elapsed_time_for_task_in_seconds = elapsed_time_for_task_in_seconds
+        self.elapsed_time_for_task_in_seconds = (
+            elapsed_time_for_task_in_seconds)
         self.created = created
         self.developer_id = developer_id
 
@@ -116,8 +119,9 @@ class Team(Base):
     sentry = Column(Integer)
     jira_url = Column(String(1000))
 
-    def __init__(self, id, blocker, critical, major, minor, trivial, total, vacation_boost,
-                 name, date_start, date_over, status, sentry, jira_url):
+    def __init__(self, id, blocker, critical, major, minor, trivial, total,
+                 vacation_boost, name, date_start, date_over,
+                 status, sentry, jira_url):
         self.id = id
         self.blocker = blocker
         self.critical = critical
@@ -134,22 +138,23 @@ class Team(Base):
         self.jira_url = jira_url
 
     def __repr__(self):
-        return "Team(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)" % (
-            self.id,
-            self.blocker,
-            self.critical,
-            self.major,
-            self.minor,
-            self.trivial,
-            self.total,
-            self.vacation_boost,
-            self.name,
-            self.date_start,
-            self.date_over,
-            self.status,
-            self.sentry,
-            self.jira_url
-        )
+        return "Team(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)"\
+               % (
+                    self.id,
+                    self.blocker,
+                    self.critical,
+                    self.major,
+                    self.minor,
+                    self.trivial,
+                    self.total,
+                    self.vacation_boost,
+                    self.name,
+                    self.date_start,
+                    self.date_over,
+                    self.status,
+                    self.sentry,
+                    self.jira_url
+                )
 
 
 class BoostVacation(Base):

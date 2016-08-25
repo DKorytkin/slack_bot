@@ -23,7 +23,10 @@ def get_request(url):
 
 
 def get_mario_gif(req):
-    gif_url = 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}'.format(req)
+    gif_url = (
+        'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}'
+        .format(req)
+    )
     res = get_request(gif_url)
     res = res.json()
     return res['data']['image_original_url']
@@ -63,8 +66,16 @@ def parse_vacation(message):
     pattern = r'^<@U1ANC9117>:.(\w+)\sв отпуске с (\d{1,2}-\d{1,2}-\d{2,4}) по\s(\d{1,2}-\d{1,2}-\d{2,4})'
 
     if re.search(pattern=pattern, string=message, flags=re.IGNORECASE):
-        result = re.search(pattern=pattern, string=message, flags=re.IGNORECASE)
-        return Vacations(dev_name=result.group(1), date_start=result.group(2), date_over=result.group(3))
+        result = re.search(
+            pattern=pattern,
+            string=message,
+            flags=re.IGNORECASE
+        )
+        return Vacations(
+            dev_name=result.group(1),
+            date_start=result.group(2),
+            date_over=result.group(3)
+        )
 
 
 def get_danger_bugs():
@@ -95,8 +106,9 @@ def get_danger_bugs():
     table = soup.find('table')
     table_body = table.find('tbody')
     for i in table_body.find_all('tr'):
-        task_name, link, summary, qa_report_point, implementer = [None for i in range(5)]
-
+        task_name, link, summary, qa_report_point, implementer = [
+            None for i in range(5)
+            ]
         if is_task_name(i):
             task_name = is_task_name(i)
             link = i.a.get('href')
@@ -106,7 +118,8 @@ def get_danger_bugs():
             qa_report_point, implementer = is_info(i)
             # TODO
             # Баг переведен на другую команду?
-            # 'Баллы не засчитываются, когда в компонентах указана команда imposer либо architect.'
+            # 'Баллы не засчитываются,
+            # когда в компонентах указана команда imposer либо architect.'
             # is_info будет None
             danger_bugs.update({task_name: {
                 'link': link,
@@ -119,7 +132,7 @@ def get_danger_bugs():
 
 def bugs_reminder(danger_bug_poin):
     """
-    return string bugs >= 100 points
+    return string bugs >= 150 points
     """
     def is_danger_point(text):
         point = int(bugs_qareport[text]['qa_report_point'])
@@ -164,7 +177,8 @@ def is_help(danger_bug_poin):
         u'`default` - _view Default version_',
         u'`дежурный` - _provides duty on fix bugs_ :bug:',
         u'`team bugs` - _team bugs > {} point_'.format(danger_bug_poin),
-        u'`@mario DEV_NAME в отпуске с 01-01-1900 по 01-02-1900` - _Отмечает отпуск_ ',
+        u'`@mario DEV_NAME в отпуске '
+        u'с 01-01-1900 по 01-02-1900` - _Отмечает отпуск_ ',
         u'`gif` ... - _receive a random GIF on request_',
         u'`game` - _play with Mario_',
         u'_coming soon_',
@@ -186,7 +200,9 @@ def mario_requests(text):
         if remind:
             return remind
         else:
-            return "We don't have danger bugs (bug_point > {})".format(danger_bug_poin)
+            return "We don't have danger bugs (bug_point > {})".format(
+                danger_bug_poin
+            )
     elif text == u'help':
         return is_help(danger_bug_poin)
 

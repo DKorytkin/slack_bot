@@ -8,12 +8,28 @@ from datetime import datetime
 import xlrd
 from sqlalchemy import func
 
-from models import AllBugs, Team, BoostVacation, session, EnumStatus, EnumSentry
 from objects import jira, TEAM, FILE_VACATIONS, issues_filter
+from models import (
+    AllBugs,
+    Team,
+    BoostVacation,
+    session,
+    EnumStatus,
+    EnumSentry
+)
 
 
 Vacations = namedtuple('Vacations', ['ids', 'date_start', 'date_over'])
-Issue = namedtuple("Issue", ["title", "priority", "summary", "date_created", "date_resolution", "developer"])
+Issue = namedtuple(
+    "Issue", [
+        "title",
+        "priority",
+        "summary",
+        "date_created",
+        "date_resolution",
+        "developer"
+    ]
+)
 
 
 def get_issues(filter):
@@ -49,7 +65,9 @@ def update_boost_vacation(dev_vacation):
         list_issues_id = [issue.id for issue in created_issues]
         for boost in vacation_boosts:
             if boost:
-                session.query(BoostVacation).filter(BoostVacation.id == boost.id).update({
+                session.query(BoostVacation).filter(
+                    BoostVacation.id == boost.id
+                ).update({
                     'list_issues': list_issues_id
                 }, False)
             else:
@@ -65,10 +83,12 @@ def update_boost_vacation(dev_vacation):
 
 def insert_tasks(issues, existing_issue_names):
     """
-        Записывает в БД только новые данные по таскам: Название, Приоритет, Описание, Девелопера
+        Записывает в БД только новые данные по таскам:
+        Название, Приоритет, Описание, Девелопера
         пример: PR-666, Major, Error on main page, i.topal, foreignKey=Team.id
         issues=парсин с jira
-        existing_issue_names=выборка с БД по названию таски, проверка на повторение
+        existing_issue_names=выборка с БД по названию таски,
+        проверка на повторение
     """
     for issue in issues:
         if issue.title in existing_issue_names:
@@ -102,7 +122,9 @@ def get_existing_issues():
 
 
 def format_date(date):
-    return datetime.strptime((date[0:19].replace('T', ' ')), '%Y-%m-%d %H:%M:%S')
+    return datetime.strptime(
+        (date[0:19].replace('T', ' ')), '%Y-%m-%d %H:%M:%S'
+    )
 
 
 def update_issue_date_resolution(issues, existing_issue_names):
@@ -115,9 +137,11 @@ def update_issue_date_resolution(issues, existing_issue_names):
                 # Парсинг даты закрытия таски
                 if issue.date_resolution is not None:
                     date_resolution = format_date(issue.date_resolution)
-                    session.query(AllBugs).filter(AllBugs.task_name == title).update({
-                        'date_resolution': date_resolution if date_resolution else None
-                    }, False)
+                    session.query(AllBugs).filter(
+                        AllBugs.task_name == title)\
+                        .update({
+                            'date_resolution': date_resolution if date_resolution else None
+                        }, False)
 
     session.commit()
 
@@ -150,7 +174,8 @@ def update_issues_from_histories(all_issues):
         jira_issue = jira.issue(issue.task_name, expand='changelog')
         changelog_issue = jira_issue.changelog
         for history in changelog_issue.histories:
-            if not is_status_history(history) and not is_assignee_history(history):
+            if not is_status_history(history) and not \
+                    is_assignee_history(history):
                 continue
 
             for item in history.items:
@@ -159,14 +184,17 @@ def update_issues_from_histories(all_issues):
                     if date_assignee:
                         ready_for_dev = format_date(date_assignee[0])
 
-                # Если в таске нет assignee использовать Ready for dev таска при создании была назначена на Developer
-                # Или елси assignee не первый в items значит одновременно был assignee и ready for dev
+                # Если в таске нет assignee использовать
+                # Ready for dev таска при создании была назначена на Developer
+                # Или елси assignee не первый в items
+                # значит одновременно был assignee и ready for dev
                 if item.toString == 'Ready for dev':
                     date_ready_for_dev.append(history.created)
                     if not date_assignee:
                         ready_for_dev = format_date(date_ready_for_dev[0])
 
-                if history.author.displayName == issue.developer_name and item.toString == 'In dev':
+                if history.author.displayName == issue.developer_name and \
+                                item.toString == 'In dev':
                     date_in_dev.append(history.created)
                     if date_in_dev:
                         in_dev = format_date(date_in_dev[0])
@@ -176,11 +204,13 @@ def update_issues_from_histories(all_issues):
                     if date_ready_for_test:
                         ready_for_test = format_date(date_ready_for_test[-1])
 
-        session.query(AllBugs).filter(AllBugs.task_name == issue.task_name).update({
-            'ready_for_dev': ready_for_dev if ready_for_dev else None,
-            'in_dev': in_dev if in_dev else None,
-            'ready_for_test': ready_for_test if ready_for_test else None
-        }, False)
+        session.query(AllBugs).filter(
+            AllBugs.task_name == issue.task_name)\
+            .update({
+                'ready_for_dev': ready_for_dev if ready_for_dev else None,
+                'in_dev': in_dev if in_dev else None,
+                'ready_for_test': ready_for_test if ready_for_test else None
+            }, False)
     session.commit()
 
 
@@ -189,12 +219,15 @@ def elapsed_time_task_in_seconds(all_tasks):
     Заполняет затраченое время на багу в секундах
     """
     for elapsed_time_for_task in all_tasks:
-        if elapsed_time_for_task.in_dev is not None and elapsed_time_for_task.ready_for_test is not None:
+        if elapsed_time_for_task.in_dev is not None and \
+                        elapsed_time_for_task.ready_for_test is not None:
             time_for_task = elapsed_time_for_task.ready_for_test - elapsed_time_for_task.in_dev
             elapsed_time = (24 * 3600 * time_for_task.days if time_for_task.days else 0) + time_for_task.seconds
-            session.query(AllBugs).filter(AllBugs.id == elapsed_time_for_task.id).update({
-                'elapsed_time_for_task_in_seconds': elapsed_time
-            }, False)
+            session.query(AllBugs).filter(
+                AllBugs.id == elapsed_time_for_task.id)\
+                .update({
+                    'elapsed_time_for_task_in_seconds': elapsed_time
+                }, False)
     session.commit()
 
 
@@ -213,11 +246,19 @@ def parsing_vacation(file):
     workbook = xlrd.open_workbook(file)
     sheet = workbook.sheet_by_index(0)
     for row in range(1, sheet.nrows):
-        developers_vacation = [sheet.cell_value(row, col) for col in range(0, sheet.ncols)]
+        developers_vacation = [
+            sheet.cell_value(row, col) for col in range(0, sheet.ncols)
+        ]
         id_dev = developers_vacation[0]
-        date_start_vacation = format_date_xls(developers_vacation[2]) if developers_vacation[2] else None
-        date_over_vacation = format_date_xls(developers_vacation[3]) if developers_vacation[3] else None
-        team = (Vacations(ids=id_dev, date_start=date_start_vacation, date_over=date_over_vacation))
+        date_start_vacation = format_date_xls(developers_vacation[2]) if \
+            developers_vacation[2] else None
+        date_over_vacation = format_date_xls(developers_vacation[3]) if \
+            developers_vacation[3] else None
+        team = (Vacations(
+            ids=id_dev,
+            date_start=date_start_vacation,
+            date_over=date_over_vacation)
+        )
         team_vacations.append(team)
     return team_vacations
 
@@ -233,7 +274,11 @@ def insert_developers(team, dev_name_overlap):
         if dev in dev_name_overlap:
             continue
         else:
-            name = Team(developer_id, None, None, None, None, None, None, None, dev, None, None, None, None, None)
+            name = Team(
+                developer_id,
+                None, None, None, None, None, None, None,
+                dev, None, None, None, None, None
+            )
             session.add(name)
     session.commit()
 
@@ -245,13 +290,16 @@ def update_developers(issues, get_existing_issues):
     for existing_issue in get_existing_issues:
         for issue in issues:
             developer_id = TEAM[issue.developer]
-            if issue.title == existing_issue.task_name and issue.developer == existing_issue.developer_name:
+            if issue.title == existing_issue.task_name and \
+                            issue.developer == existing_issue.developer_name:
                 continue
-            session.query(AllBugs).filter(AllBugs.task_name == issue.title).update(dict(
-                priority=issue.priority,
-                developer_name=issue.developer,
-                developer_id=developer_id
-            ), False)
+            session.query(AllBugs).filter(
+                AllBugs.task_name == issue.title)\
+                .update(dict(
+                    priority=issue.priority,
+                    developer_name=issue.developer,
+                    developer_id=developer_id
+                ), False)
     session.commit()
 
 
@@ -334,24 +382,47 @@ def update_status(querys):
     def exception_dev(developers):
         for developer in developers:
             # Проверка в четверг для Макса Thursday
-            if datetime.now().strftime('%A') == 'Thursday' and developer.id == 3:
-                session.query(Team).filter(Team.id == developer.id).update({'status': EnumStatus.teaching}, False)
+            if datetime.now().strftime('%A') == 'Thursday' and \
+                            developer.id == 3:
+                session.query(Team).filter(
+                    Team.id == developer.id
+                ).update({
+                    'status': EnumStatus.teaching
+                }, False)
             elif developer.date_start is None:
-                session.query(Team).filter(Team.id == developer.id).update({'status': None}, False)
+                session.query(Team).filter(
+                    Team.id == developer.id
+                ).update({
+                    'status': None
+                }, False)
             elif developer.date_start <= datetime.now().date() <= developer.date_over:
-                session.query(Team).filter(Team.id == developer.id).update({'status': EnumStatus.vacation}, False)
+                session.query(Team).filter(
+                    Team.id == developer.id
+                ).update({
+                    'status': EnumStatus.vacation
+                }, False)
             else:
-                session.query(Team).filter(Team.id == developer.id).update({'status': None}, False)
+                session.query(Team).filter(
+                    Team.id == developer.id
+                ).update({
+                    'status': None
+                }, False)
         session.commit()
 
     exception_dev(querys)
 
-    min_point = session.query((func.min(Team.total))).filter(Team.status == None).scalar()
+    min_point = session.query((func.min(Team.total))).filter(
+        Team.status == None
+    ).scalar()
     developers = session.query(Team).order_by(Team.total.desc())
     for dev in developers:
         # Номинант на дежурство
         if dev.total == min_point and dev.date_start is None:
-            session.query(Team).filter(Team.id == dev.id).update({'status': EnumStatus.orderly}, False)
+            session.query(Team).filter(
+                Team.id == dev.id
+            ).update({
+                'status': EnumStatus.orderly
+            }, False)
 
     session.commit()
 
@@ -373,7 +444,9 @@ def get_sum_points(list_bug_ids):
     """
     get sum points from list bug ids
     """
-    list_bug = session.query(AllBugs).filter(AllBugs.id.in_(list_bug_ids)).all()
+    list_bug = session.query(AllBugs).filter(
+        AllBugs.id.in_(list_bug_ids)
+    ).all()
     blocker, critical, major, minor, trivial = 0, 0, 0, 0, 0
     for bug in list_bug:
         if bug.priority == 'Blocker':
@@ -425,16 +498,25 @@ def choose_developer(query, sum_equal_points, sum_sentrys):
             # session.query(Team).filter(Team.id == dev.id).update({'sentry': 1}, False)
         if dev.status == EnumStatus.orderly and dev.sentry is None:
             winner = dev.name
-            session.query(Team).filter(Team.id == dev.id).update({'sentry': EnumSentry.duty}, False)
+            session.query(Team).filter(
+                Team.id == dev.id
+            ).update({
+                'sentry': EnumSentry.duty
+            }, False)
             session.commit()
             return winner
 
 
 def update_total_team_bugs():
-    team_bugs = session.query(Team.id, (Team.blocker + Team.critical + Team.major + Team.minor + Team.trivial).label(
-        'sum')).all()
+    team_bugs = session.query(Team.id, (
+        Team.blocker + Team.critical + Team.major + Team.minor + Team.trivial
+    ).label('sum')).all()
     for team_bug in team_bugs:
-        session.query(Team).filter(Team.id == team_bug.id).update({'total': team_bug.sum}, False)
+        session.query(Team).filter(
+            Team.id == team_bug.id
+        ).update({
+            'total': team_bug.sum
+        }, False)
     session.commit()
 
 
@@ -453,7 +535,9 @@ def update_all_issues():
     query_task_name = [task.task_name for task in tasks]
     insert_tasks(get_issues(issues_filter), query_task_name)
     # update boost vacation
-    dev_vacation = session.query(Team).order_by(Team.total.desc()).filter(Team.status == EnumStatus.vacation)
+    dev_vacation = session.query(Team).order_by(Team.total.desc()).filter(
+        Team.status == EnumStatus.vacation
+    )
     if dev_vacation:
         update_boost_vacation(dev_vacation)
     update_developers_boost()

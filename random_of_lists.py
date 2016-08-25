@@ -44,15 +44,21 @@ def run():
         update_status(dev_points)
 
         # исключить повторения одного человека
-        sum_equal_points = session.query(func.sum(Team.status)).filter(Team.status == EnumStatus.orderly).scalar()
-        sum_sentrys = session.query(func.sum(Team.sentry)).filter(Team.status == EnumStatus.orderly).scalar()
+        sum_equal_points = session.query(func.sum(Team.status)).filter(
+            Team.status == EnumStatus.orderly
+        ).scalar()
+        sum_sentrys = session.query(func.sum(Team.sentry)).filter(
+            Team.status == EnumStatus.orderly
+        ).scalar()
 
         # Выбор счасливчика с наименьшим кол-вом поинтов
         querys = session.query(Team).all()
         winner = choose_developer(querys, sum_equal_points, sum_sentrys)
 
         text_strings = [
-            u'*Поздравляем!* :tada: {} сегодня дежурный по багам :bug:'.format(winner),
+            u'*Поздравляем!* :tada: {} сегодня дежурный по багам :bug:'.format(
+                winner
+            ),
             u'_Поинты команды = {}_'.format(total_all_team),
             u'_Среднее кол-во поинтов команды = {}_'.format(int(average))
         ]

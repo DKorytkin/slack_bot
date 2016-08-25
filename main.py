@@ -9,9 +9,15 @@ import concurrent.futures
 from slackclient import SlackClient
 
 from random_of_lists import run
-from common import request_gif, get_mario_gif, parse_vacation, requests_bot_keys, mario_requests
 from parse_data import mario_update_developers_vacations
 from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
+from common import (
+    request_gif,
+    get_mario_gif,
+    parse_vacation,
+    requests_bot_keys,
+    mario_requests
+)
 
 
 def process_task(task):
@@ -114,9 +120,10 @@ if sc.rtm_connect():
         # TODO исправить время
         # регулярный запуск
         if datetime.now().strftime('%H:%M:%S') == '18:05:55':
-            send_message(bot_message=run())
-        if datetime.now().strftime("%A") == 'Sunday' and datetime.now().strftime('%H:%M:%S') == '18:06:55':
-            send_message(bot_message=mario_requests('team bugs'))
+            process_task(send_message(bot_message=run()))
+        if datetime.now().strftime("%A") == 'Sunday' and \
+                        datetime.now().strftime('%H:%M:%S') == '18:06:55':
+            process_task(send_message(bot_message=mario_requests('team bugs')))
 
         if not req:
             continue
@@ -135,11 +142,21 @@ if sc.rtm_connect():
             process_task(send_message(mario_requests(new_message.text)))
 
         if 'gif' in new_message.text:
-            process_task(send_message(get_mario_gif(request_gif(new_message.text))))
+            process_task(
+                send_message(
+                    get_mario_gif(request_gif(new_message.text))
+                )
+            )
 
         if parse_vacation(new_message.text):
             data_vacation = parse_vacation(new_message.text)
-            process_task(send_message(mario_update_developers_vacations(vacation_data=data_vacation)))
+            process_task(
+                send_message(
+                    mario_update_developers_vacations(
+                        vacation_data=data_vacation
+                    )
+                )
+            )
 
 else:
     print("Connection Failed, invalid token?")
