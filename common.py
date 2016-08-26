@@ -10,7 +10,7 @@ import re
 from bs4 import BeautifulSoup
 
 from random_of_lists import run
-from objects import DEFAULT_VERSION
+from objects import DEFAULT_VERSION, QA_REPORT
 
 
 Vacations = namedtuple('Vacations', ['dev_name', 'date_start', 'date_over'])
@@ -101,7 +101,7 @@ def get_danger_bugs():
             return None
 
     danger_bugs = {}
-    html_text = get_request('http://qareport.uaprom/?component_id=10042').text
+    html_text = get_request(QA_REPORT).text
     soup = BeautifulSoup(html_text, 'html.parser')
     table = soup.find('table')
     table_body = table.find('tbody')
