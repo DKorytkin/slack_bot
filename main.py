@@ -5,7 +5,9 @@ __author__ = 'Denis'
 import time
 from datetime import datetime
 import concurrent.futures
+from websocket._exceptions import WebSocketConnectionClosedException
 
+from retrying import retry
 from slackclient import SlackClient
 
 from random_of_lists import run
@@ -110,19 +112,31 @@ def bot_typing(bot_id=ID_MARIO, channel=ID_CHANNEL_CONTENT):
     )
 
 
+def retry_if_connection_error(exception):
+    """
+    Return True if we should retry (in this case when it's an IOError),
+    False otherwise
+    """
+    return isinstance(exception, WebSocketConnectionClosedException)
+
+
+@retry(retry_on_exception=retry_if_connection_error, wrap_exception=True)
+def slack_client_read():
+    return sc.rtm_read()
+
+
 sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
 
     while True:
-        result = None
-        req = sc.rtm_read()
+        req = slack_client_read()
 
         # TODO исправить время
         # регулярный запуск
-        if datetime.now().strftime('%H:%M:%S') == '18:05:55':
+        if datetime.now().strftime('%H:%M:%S') == '10:10:55':
             process_task(send_message(bot_message=run()))
-        if datetime.now().strftime("%A") == 'Sunday' and \
-                        datetime.now().strftime('%H:%M:%S') == '18:06:55':
+        if datetime.now().strftime("%A") == 'Friday' and \
+                        datetime.now().strftime('%H:%M:%S') == '10:16:55':
             process_task(send_message(bot_message=mario_requests('team bugs')))
 
         if not req:
@@ -151,12 +165,10 @@ if sc.rtm_connect():
         if parse_vacation(new_message.text):
             data_vacation = parse_vacation(new_message.text)
             process_task(
-                send_message(
                     mario_update_developers_vacations(
                         vacation_data=data_vacation
                     )
                 )
-            )
 
 else:
     print("Connection Failed, invalid token?")

@@ -63,7 +63,7 @@ def play_mario():
 
 def parse_vacation(message):
     # TODO поменять паттерн ID_MARIO
-    pattern = r'^<@U1ANC9117>:.(\w+)\sв отпуске с (\d{1,2}-\d{1,2}-\d{2,4}) по\s(\d{1,2}-\d{1,2}-\d{2,4})'
+    pattern = r'^<@U1ANC9117>.(\w+)\sв отпуске с (\d{1,2}-\d{1,2}-\d{2,4}) по\s(\d{1,2}-\d{1,2}-\d{2,4})'
 
     if re.search(pattern=pattern, string=message, flags=re.IGNORECASE):
         result = re.search(
@@ -175,27 +175,27 @@ def get_versions():
 def is_help(danger_bug_poin):
     help_str = [
         u'`default` - _view Default version_',
-        u'`дежурный` - _provides duty on fix bugs_ :bug:',
+        u'`person on duty` - _provides person on duty on fix bugs_ :bug:',
         u'`team bugs` - _team bugs > {} point_'.format(danger_bug_poin),
-        u'`@mario DEV_NAME в отпуске '
-        u'с 01-01-1900 по 01-02-1900` - _Отмечает отпуск_ ',
+        u'`@mario SURNAME в отпуске '
+        u'с 01-01-1900 по 01-02-1900` - _Set vacation_ ',
         u'`gif` ... - _receive a random GIF on request_',
         u'`game` - _play with Mario_',
         u'_coming soon_',
     ]
     return '\n'.join(help_str)
 
-requests_bot_keys = ['default', 'game', u'дежурный', 'team bugs', 'help']
+requests_bot_keys = ['default', 'game', u'person on duty', 'team bugs', 'help']
 
 
 def mario_requests(text):
-    if text == u'default':
+    if text == requests_bot_keys[0]:
         return get_versions()
-    elif text == u'game':
+    elif text == requests_bot_keys[1]:
         return play_mario()
-    elif text == u'дежурный':
+    elif text == requests_bot_keys[2]:
         return run()
-    elif text == u'team bugs':
+    elif text == requests_bot_keys[3]:
         remind = bugs_reminder(danger_bug_poin)
         if remind:
             return remind
@@ -203,7 +203,7 @@ def mario_requests(text):
             return "We don't have danger bugs (bug_point > {})".format(
                 danger_bug_poin
             )
-    elif text == u'help':
+    elif text == requests_bot_keys[4]:
         return is_help(danger_bug_poin)
 
 

@@ -371,6 +371,12 @@ def update_team_bugs(team_ids, all_bugs):
     session.commit()
 
 
+def is_vacation(start, over):
+    return bool(
+        start <= datetime.now().date() <= over
+    )
+
+
 def update_status(querys):
     """
     status:
@@ -395,7 +401,7 @@ def update_status(querys):
                 ).update({
                     'status': None
                 }, False)
-            elif developer.date_start <= datetime.now().date() <= developer.date_over:
+            elif is_vacation(developer.date_start, developer.date_over):
                 session.query(Team).filter(
                     Team.id == developer.id
                 ).update({
@@ -417,7 +423,10 @@ def update_status(querys):
     developers = session.query(Team).order_by(Team.total.desc())
     for dev in developers:
         # Номинант на дежурство
-        if dev.total == min_point and dev.date_start is None:
+        if dev.total == min_point and (
+                        dev.date_start is None or
+                        not is_vacation(dev.date_start, dev.date_over)
+        ):
             session.query(Team).filter(
                 Team.id == dev.id
             ).update({
