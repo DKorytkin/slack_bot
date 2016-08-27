@@ -434,7 +434,7 @@ def update_status(querys):
         session.commit()
 
     exception_dev(querys)
-
+    # TODO add boost
     min_point = session.query((func.min(Team.total))).filter(
         Team.status == None
     ).scalar()
@@ -501,15 +501,18 @@ def update_developers_boost():
         if not developer_boost:
             continue
         sum_points = get_sum_points(developer_boost)
-        dev_id = developer.id
         # TODO update formula from statistics import median
+        print('sum', sum_points, 'count', count_developers)
         point = int(sum(sum_points) / count_developers)
-        if not point:
+        print('###########', point)
+        if point is None:
             continue
-        session.query(Team).filter(Team.id == dev_id).update({
-            'vacation_boost': point,
+        session.query(Team).filter(
+            Team.id == developer.id
+        ).update({
+            'vacation_boost': point
         }, False)
-    session.commit()
+        session.commit()
 
 
 def choose_developer(query, sum_equal_points, sum_sentrys):

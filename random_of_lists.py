@@ -63,7 +63,7 @@ def run():
             u'_Поинты команды = {}_'.format(total_all_team),
             u'_Среднее кол-во поинтов команды = {}_'.format(int(average))
         ]
-
+        # TODO add boost
         team_points = session.query(Team).order_by(Team.total.desc())
         for point in team_points:
             developer_vacation = ''
