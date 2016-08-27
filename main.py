@@ -7,7 +7,6 @@ from datetime import datetime
 import concurrent.futures
 from websocket._exceptions import WebSocketConnectionClosedException
 
-from retrying import retry
 from slackclient import SlackClient
 
 from random_of_lists import run
@@ -91,8 +90,9 @@ class Message:
         self.text = is_text(req)
 
 
-def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
+def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=SLACK_TOKEN):
     time.sleep(1)
+    sc = SlackClient(token)
     sc.api_call(
         'chat.postMessage',
         channel=channel,
@@ -102,35 +102,18 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT):
     )
 
 
-# TODO don't work
-def bot_typing(bot_id=ID_MARIO, channel=ID_CHANNEL_CONTENT):
-    sc.api_call(
-        'chat.postMessage',
-        type='user_typing',
-        channel=channel,
-        user=bot_id,
-    )
-
-
-def retry_if_connection_error(exception):
-    """
-    Return True if we should retry (in this case when it's an IOError),
-    False otherwise
-    """
-    return isinstance(exception, WebSocketConnectionClosedException)
-
-
-@retry(retry_on_exception=retry_if_connection_error, wrap_exception=True)
-def slack_client_read():
-    return sc.rtm_read()
-
+def slack_read(token):
+    try:
+        return sc.rtm_read()
+    except (WebSocketConnectionClosedException, ConnectionResetError):
+        print('!!! ERROR connection !!!')
+        slack_read(token)
 
 sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
-
     while True:
-        req = slack_client_read()
-
+        req = slack_read(SLACK_TOKEN)
+        # TODO added regular task update_all_issues in time
         # TODO исправить время
         # регулярный запуск
         if datetime.now().strftime('%H:%M:%S') == '10:10:55':
@@ -169,7 +152,5 @@ if sc.rtm_connect():
                         vacation_data=data_vacation
                     )
                 )
-
 else:
-    print("Connection Failed, invalid token?")
-
+    print('drop connection, invalid token')

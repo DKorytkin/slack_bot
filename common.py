@@ -11,9 +11,12 @@ from bs4 import BeautifulSoup
 
 from random_of_lists import run
 from objects import DEFAULT_VERSION, QA_REPORT
+from slack_token import ID_MARIO
 
 
+requests_bot_keys = ['default', 'game', u'person on duty', 'team bugs', 'help']
 Vacations = namedtuple('Vacations', ['dev_name', 'date_start', 'date_over'])
+Absent = namedtuple('Absent', ['dev_name', 'status'])
 danger_bug_poin = 150
 
 
@@ -63,11 +66,25 @@ def play_mario():
 
 def parse_vacation(message):
     # TODO поменять паттерн ID_MARIO
-    pattern = r'^<@U1ANC9117>.(\w+)\sв отпуске с (\d{1,2}-\d{1,2}-\d{2,4}) по\s(\d{1,2}-\d{1,2}-\d{2,4})'
-
-    if re.search(pattern=pattern, string=message, flags=re.IGNORECASE):
+    vacation_pattern = r'^<@{id}>\s+?(\w+)\sв\sотпуске\s\w\s' \
+              r'(\d{day}-\d{month}-\d{year})\s\w\w\s' \
+              r'(\d{day}-\d{month}-\d{year})'.format(
+        id=ID_MARIO,
+        day='{1,2}',
+        month='{1,2}',
+        year='{2,4}'
+    )
+    absent_pattern = r'^<@{id}>\s+?(\w+)\s' \
+                     r'(в отгуле|отсутствует|сегодня не будет|' \
+                     r'работает из дому|' \
+                     r'на дому|преподает|нет на месте)'.format(id=ID_MARIO)
+    if re.search(
+            pattern=vacation_pattern,
+            string=message,
+            flags=re.IGNORECASE
+    ):
         result = re.search(
-            pattern=pattern,
+            pattern=vacation_pattern,
             string=message,
             flags=re.IGNORECASE
         )
@@ -75,6 +92,20 @@ def parse_vacation(message):
             dev_name=result.group(1),
             date_start=result.group(2),
             date_over=result.group(3)
+        )
+    elif re.search(
+            pattern=absent_pattern,
+            string=message,
+            flags=re.IGNORECASE
+    ):
+        result = re.search(
+            pattern=absent_pattern,
+            string=message,
+            flags=re.IGNORECASE
+        )
+        return Absent(
+            dev_name=result.group(1),
+            status=result.group(2)
         )
 
 
@@ -184,8 +215,6 @@ def is_help(danger_bug_poin):
         u'_coming soon_',
     ]
     return '\n'.join(help_str)
-
-requests_bot_keys = ['default', 'game', u'person on duty', 'team bugs', 'help']
 
 
 def mario_requests(text):

@@ -31,7 +31,8 @@ def run():
     """
     if datetime.now().strftime("%d.%m.%y") in holidays \
             or datetime.now().strftime("%A") in day_off:
-        exit('Holiday')
+        # TODO regular task posted message holiday in Sunday and Saturday
+        return 'Holiday'
     else:
         # TODO uncomment update_all_issues
         # update_all_issues()
@@ -77,7 +78,7 @@ def run():
                 vacation=developer_vacation if developer_vacation else ''
             ))
         # TODO ссылка на гифку не раскрывается
-        # text_strings.append('\n{}'.format(get_random_cat()))
+        text_strings.append('\n{}'.format(get_random_cat()))
 
         return '\n'.join(text_strings)
 

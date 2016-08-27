@@ -3,7 +3,7 @@
 __author__ = 'Denis'
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, date
 
 import xlrd
 from sqlalchemy import func
@@ -294,12 +294,13 @@ def update_developers(issues, get_existing_issues):
                             issue.developer == existing_issue.developer_name:
                 continue
             session.query(AllBugs).filter(
-                AllBugs.task_name == issue.title)\
-                .update(dict(
+                AllBugs.task_name == issue.title
+            ).update(dict(
                     priority=issue.priority,
                     developer_name=issue.developer,
                     developer_id=developer_id
-                ), False)
+                ), False
+            )
     session.commit()
 
 
@@ -328,14 +329,26 @@ def mario_update_developers_vacations(vacation_data):
         except ValueError:
             return datetime.strptime(date, '%d-%m-%y')
 
+    def is_absent(date):
+        return bool(len(date) == 2)
+
     developers = session.query(Team.id, Team.name).all()
     for developer in developers:
         # TODO add list names for developer and check in
-        if vacation_data.dev_name in developer.name.lower():
+        if vacation_data.dev_name in developer.name.lower() and\
+                not is_absent(vacation_data):
             session.query(Team).filter(Team.id == developer.id).update({
                 'date_start': is_date(vacation_data.date_start).date(),
                 'date_over': is_date(vacation_data.date_over).date()
             }, False)
+        elif vacation_data.dev_name in developer.name.lower() and\
+                 is_absent(vacation_data):
+            session.query(Team).filter(Team.id == developer.id).update({
+                'date_start': date.today(),
+                'date_over': date.today(),
+                'status': EnumStatus.vacation
+            }, False)
+
     session.commit()
 
 
@@ -377,6 +390,12 @@ def is_vacation(start, over):
     )
 
 
+def is_teaching(dev_id):
+    return bool(
+        datetime.now().strftime('%A') == 'Thursday' and dev_id == 3
+    )
+
+
 def update_status(querys):
     """
     status:
@@ -388,8 +407,7 @@ def update_status(querys):
     def exception_dev(developers):
         for developer in developers:
             # Проверка в четверг для Макса Thursday
-            if datetime.now().strftime('%A') == 'Thursday' and \
-                            developer.id == 3:
+            if is_teaching(developer.id):
                 session.query(Team).filter(
                     Team.id == developer.id
                 ).update({
