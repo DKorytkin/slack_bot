@@ -12,6 +12,7 @@ from objects import (
     TEAM,
     FILE_VACATIONS,
     issues_filter,
+    jira_main_url,
     date_created,
     JIRA_NICKNAME
 )
@@ -143,11 +144,14 @@ def update_issue_date_resolution(issues, existing_issue_names):
                 if issue.date_resolution is not None:
                     date_resolution = format_date(issue.date_resolution)
                     session.query(AllBugs).filter(
-                        AllBugs.task_name == title) \
-                        .update({
-                        'date_resolution': date_resolution if date_resolution else None
-                    }, False)
-
+                        AllBugs.task_name == title
+                    ).update(
+                        {
+                            'date_resolution': date_resolution if
+                                               date_resolution else
+                                               None
+                        }, False
+                    )
     session.commit()
 
 
@@ -210,8 +214,8 @@ def update_issues_from_histories(all_issues):
                         ready_for_test = format_date(date_ready_for_test[-1])
 
         session.query(AllBugs).filter(
-            AllBugs.task_name == issue.task_name) \
-            .update({
+            AllBugs.task_name == issue.task_name
+        ).update({
             'ready_for_dev': ready_for_dev if ready_for_dev else None,
             'in_dev': in_dev if in_dev else None,
             'ready_for_test': ready_for_test if ready_for_test else None
@@ -228,10 +232,13 @@ def elapsed_time_task_in_seconds(all_tasks):
                         elapsed_time_for_task.ready_for_test is not None:
             time_for_task = elapsed_time_for_task.ready_for_test - elapsed_time_for_task.in_dev
             elapsed_time = (
-                           24 * 3600 * time_for_task.days if time_for_task.days else 0) + time_for_task.seconds
+                               24 * 3600 * time_for_task.days if
+                               time_for_task.days else
+                               0
+                           ) + time_for_task.seconds
             session.query(AllBugs).filter(
-                AllBugs.id == elapsed_time_for_task.id) \
-                .update({
+                AllBugs.id == elapsed_time_for_task.id
+            ).update({
                 'elapsed_time_for_task_in_seconds': elapsed_time
             }, False)
     session.commit()
@@ -293,17 +300,20 @@ def insert_developers(team, dev_name_overlap):
 def update_jira_url(jira_date_created, dict_developers):
     developers = session.query(Team.id).all()
     for developer in developers:
-        jira_url = 'project = PR AND ' \
-                   'issuetype = Bug AND' \
-                   ' created >= {created} AND' \
-                   ' Developer = {dev}'.format(
+        jira_url = 'https://jira.uaprom/issues/?jql=' \
+                   'project%20%3D%20PR%20AND%20' \
+                   'issuetype%20%3D%20Bug%20AND%20' \
+                   'created%20%3E%3D%20{created}%20AND%20' \
+                   'Developer%20%3D%20%22{dev}%22' \
+                   '%20ORDER%20BY%20resolved%20DESC'.format(
             created=jira_date_created,
             dev=dict_developers[developer.id]
         )
+        url = jira_url
         session.query(Team).filter(
             Team.id == developer.id
         ).update({
-            'jira_url': jira_url
+            'jira_url': url
         }, False
         )
     session.commit()
@@ -606,7 +616,7 @@ def update_all_issues():
     developers = session.query(Team.name).all()
     dev_names = [developer.name for developer in developers]
     insert_developers(TEAM, dev_names)
-    update_jira_url(date_created, JIRA_NICKNAME)
+    update_jira_url(jira_main_url, date_created, JIRA_NICKNAME)
     # update vacation from file.xls
     update_developers_vacations(parsing_vacation(FILE_VACATIONS))
     # update dev status

@@ -105,7 +105,7 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=SLACK_TOKEN):
 def slack_read(token):
     try:
         return sc.rtm_read()
-    except (WebSocketConnectionClosedException, ConnectionResetError):
+    except (WebSocketConnectionClosedException, ConnectionResetError, OSError):
         print('!!! ERROR connection !!!')
         slack_read(token)
 
