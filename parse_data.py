@@ -57,8 +57,17 @@ def get_issues(filter):
         )
 
 
-def update_boost_vacation(dev_vacation):
-    for dev in dev_vacation:
+def update_boost_vacation():
+    dev_vacations = session.query(
+        Team
+    ).order_by(
+        Team.total.desc()
+    ).filter(
+        Team.status == EnumStatus.vacation
+    )
+    if not dev_vacations:
+        return
+    for dev in dev_vacations:
         vacation_boosts = session.query(BoostVacation).filter(
             dev.id == BoostVacation.developer_id,
             dev.date_start == BoostVacation.vacation_start,
@@ -69,6 +78,14 @@ def update_boost_vacation(dev_vacation):
             dev.date_over >= AllBugs.created
         ).all()
         list_issues_id = [issue.id for issue in created_issues]
+        if not vacation_boosts:
+            result = BoostVacation(
+                developer_id=dev.id,
+                vacation_start=dev.date_start,
+                vacation_over=dev.date_over,
+                list_issues=list_issues_id
+            )
+            session.add(result)
         for boost in vacation_boosts:
             if boost:
                 session.query(BoostVacation).filter(
@@ -76,14 +93,6 @@ def update_boost_vacation(dev_vacation):
                 ).update({
                     'list_issues': list_issues_id
                 }, False)
-            else:
-                result = BoostVacation(
-                    developer_id=dev.id,
-                    vacation_start=dev.date_start,
-                    vacation_over=dev.date_over,
-                    list_issues=list_issues_id
-                )
-                session.add(result)
     session.commit()
 
 
@@ -449,14 +458,23 @@ def is_min_point():
     iteration = 0
     for total_point in total_points:
         if total_point.id == vacation_boosts[iteration].id:
-            sum_data = total_point.total + (
-                vacation_boosts[iteration].vacation_boost if
-                vacation_boosts[iteration].vacation_boost else
-                0
+            if vacation_boosts[iteration].vacation_boost:
+                sum_data = (
+                    total_point.total + vacation_boosts[iteration].vacation_boost
             )
+            else:
+                sum_data = total_point.total
             list_sums.append(sum_data)
         iteration += 1
     return min(list_sums)
+
+
+def is_boost(dev_query):
+    if dev_query.vacation_boost:
+        all_point = dev_query.total + dev_query.vacation_boost
+    else:
+        all_point = dev_query.total
+    return all_point
 
 
 def update_status(querys):
@@ -501,9 +519,7 @@ def update_status(querys):
     developers = session.query(Team).order_by(Team.total.desc())
     for dev in developers:
         # Номинант на дежурство
-        all_point = dev.total + (
-            dev.vacation_boost if dev.vacation_boost else 0
-        )
+        all_point = is_boost(dev)
         if all_point == min_point and (
                         dev.date_start is None or
                     not is_vacation(dev.date_start, dev.date_over)
@@ -616,23 +632,14 @@ def update_all_issues():
     developers = session.query(Team.name).all()
     dev_names = [developer.name for developer in developers]
     insert_developers(TEAM, dev_names)
-    update_jira_url(jira_main_url, date_created, JIRA_NICKNAME)
+    update_jira_url(date_created, JIRA_NICKNAME)
     # update vacation from file.xls
     update_developers_vacations(parsing_vacation(FILE_VACATIONS))
-    # update dev status
-    dev_points = session.query(Team).order_by(Team.total.desc())
-    update_status(dev_points)
+
     # insert new tasks
     tasks = session.query(AllBugs.task_name).all()
     query_task_name = [task.task_name for task in tasks]
     insert_tasks(get_issues(issues_filter), query_task_name)
-    # update boost vacation
-    dev_vacation = session.query(Team).order_by(Team.total.desc()).filter(
-        Team.status == EnumStatus.vacation
-    )
-    if dev_vacation:
-        update_boost_vacation(dev_vacation)
-    update_developers_boost()
     # update foreign key (change developer)
     update_developers(get_issues(issues_filter), get_existing_issues())
 
@@ -641,6 +648,12 @@ def update_all_issues():
     for developer in team_ids:
         update_team_bugs(developer.id, get_existing_issues())
     update_total_team_bugs()
+    # update dev status
+    dev_points = session.query(Team).order_by(Team.total.desc())
+    update_status(dev_points)
+    # update boost vacation
+    update_boost_vacation()
+    update_developers_boost()
 
     update_issue_date_resolution(get_issues(issues_filter), query_task_name)
 
