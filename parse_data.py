@@ -6,9 +6,15 @@ from collections import namedtuple
 from datetime import datetime, date
 
 import xlrd
-from sqlalchemy import func
 
-from objects import jira, TEAM, FILE_VACATIONS, issues_filter
+from objects import (
+    jira,
+    TEAM,
+    FILE_VACATIONS,
+    issues_filter,
+    date_created,
+    JIRA_NICKNAME
+)
 from models import (
     AllBugs,
     Team,
@@ -17,7 +23,6 @@ from models import (
     EnumStatus,
     EnumSentry
 )
-
 
 Vacations = namedtuple('Vacations', ['ids', 'date_start', 'date_over'])
 Issue = namedtuple(
@@ -138,10 +143,10 @@ def update_issue_date_resolution(issues, existing_issue_names):
                 if issue.date_resolution is not None:
                     date_resolution = format_date(issue.date_resolution)
                     session.query(AllBugs).filter(
-                        AllBugs.task_name == title)\
+                        AllBugs.task_name == title) \
                         .update({
-                            'date_resolution': date_resolution if date_resolution else None
-                        }, False)
+                        'date_resolution': date_resolution if date_resolution else None
+                    }, False)
 
     session.commit()
 
@@ -205,12 +210,12 @@ def update_issues_from_histories(all_issues):
                         ready_for_test = format_date(date_ready_for_test[-1])
 
         session.query(AllBugs).filter(
-            AllBugs.task_name == issue.task_name)\
+            AllBugs.task_name == issue.task_name) \
             .update({
-                'ready_for_dev': ready_for_dev if ready_for_dev else None,
-                'in_dev': in_dev if in_dev else None,
-                'ready_for_test': ready_for_test if ready_for_test else None
-            }, False)
+            'ready_for_dev': ready_for_dev if ready_for_dev else None,
+            'in_dev': in_dev if in_dev else None,
+            'ready_for_test': ready_for_test if ready_for_test else None
+        }, False)
     session.commit()
 
 
@@ -222,12 +227,13 @@ def elapsed_time_task_in_seconds(all_tasks):
         if elapsed_time_for_task.in_dev is not None and \
                         elapsed_time_for_task.ready_for_test is not None:
             time_for_task = elapsed_time_for_task.ready_for_test - elapsed_time_for_task.in_dev
-            elapsed_time = (24 * 3600 * time_for_task.days if time_for_task.days else 0) + time_for_task.seconds
+            elapsed_time = (
+                           24 * 3600 * time_for_task.days if time_for_task.days else 0) + time_for_task.seconds
             session.query(AllBugs).filter(
-                AllBugs.id == elapsed_time_for_task.id)\
+                AllBugs.id == elapsed_time_for_task.id) \
                 .update({
-                    'elapsed_time_for_task_in_seconds': elapsed_time
-                }, False)
+                'elapsed_time_for_task_in_seconds': elapsed_time
+            }, False)
     session.commit()
 
 
@@ -237,6 +243,7 @@ def parsing_vacation(file):
     Выбирает с файла dev_vacations.xls дату начала и окончания отпуска
     file.xls
     """
+
     def format_date_xls(date):
         date_tuple = xlrd.xldate_as_tuple(date, 0)
         return datetime(*date_tuple).date()
@@ -248,7 +255,7 @@ def parsing_vacation(file):
     for row in range(1, sheet.nrows):
         developers_vacation = [
             sheet.cell_value(row, col) for col in range(0, sheet.ncols)
-        ]
+            ]
         id_dev = developers_vacation[0]
         date_start_vacation = format_date_xls(developers_vacation[2]) if \
             developers_vacation[2] else None
@@ -283,6 +290,25 @@ def insert_developers(team, dev_name_overlap):
     session.commit()
 
 
+def update_jira_url(jira_date_created, dict_developers):
+    developers = session.query(Team.id).all()
+    for developer in developers:
+        jira_url = 'project = PR AND ' \
+                   'issuetype = Bug AND' \
+                   ' created >= {created} AND' \
+                   ' Developer = {dev}'.format(
+            created=jira_date_created,
+            dev=dict_developers[developer.id]
+        )
+        session.query(Team).filter(
+            Team.id == developer.id
+        ).update({
+            'jira_url': jira_url
+        }, False
+        )
+    session.commit()
+
+
 def update_developers(issues, get_existing_issues):
     """
     Update developers(foreign key) in AllBugs
@@ -296,10 +322,10 @@ def update_developers(issues, get_existing_issues):
             session.query(AllBugs).filter(
                 AllBugs.task_name == issue.title
             ).update(dict(
-                    priority=issue.priority,
-                    developer_name=issue.developer,
-                    developer_id=developer_id
-                ), False
+                priority=issue.priority,
+                developer_name=issue.developer,
+                developer_id=developer_id
+            ), False
             )
     session.commit()
 
@@ -335,14 +361,14 @@ def mario_update_developers_vacations(vacation_data):
     developers = session.query(Team.id, Team.name).all()
     for developer in developers:
         # TODO add list names for developer and check in
-        if vacation_data.dev_name in developer.name.lower() and\
+        if vacation_data.dev_name in developer.name.lower() and \
                 not is_absent(vacation_data):
             session.query(Team).filter(Team.id == developer.id).update({
                 'date_start': is_date(vacation_data.date_start).date(),
                 'date_over': is_date(vacation_data.date_over).date()
             }, False)
-        elif vacation_data.dev_name in developer.name.lower() and\
-                 is_absent(vacation_data):
+        elif vacation_data.dev_name in developer.name.lower() and \
+                is_absent(vacation_data):
             session.query(Team).filter(Team.id == developer.id).update({
                 'date_start': date.today(),
                 'date_over': date.today(),
@@ -396,6 +422,33 @@ def is_teaching(dev_id):
     )
 
 
+def is_min_point():
+    total_points = session.query(
+        Team.id,
+        Team.total
+    ).filter(
+        Team.status == None
+    ).all()
+    vacation_boosts = session.query(
+        Team.id,
+        Team.vacation_boost
+    ).filter(
+        Team.status == None
+    ).all()
+    list_sums = []
+    iteration = 0
+    for total_point in total_points:
+        if total_point.id == vacation_boosts[iteration].id:
+            sum_data = total_point.total + (
+                vacation_boosts[iteration].vacation_boost if
+                vacation_boosts[iteration].vacation_boost else
+                0
+            )
+            list_sums.append(sum_data)
+        iteration += 1
+    return min(list_sums)
+
+
 def update_status(querys):
     """
     status:
@@ -434,17 +487,16 @@ def update_status(querys):
         session.commit()
 
     exception_dev(querys)
-    min_point = session.query((func.min(
-        Team.total + Team.vacation_boost
-    ))).filter(
-        Team.status == None
-    ).scalar()
+    min_point = is_min_point()
     developers = session.query(Team).order_by(Team.total.desc())
     for dev in developers:
         # Номинант на дежурство
-        if dev.total == min_point and (
+        all_point = dev.total + (
+            dev.vacation_boost if dev.vacation_boost else 0
+        )
+        if all_point == min_point and (
                         dev.date_start is None or
-                        not is_vacation(dev.date_start, dev.date_over)
+                    not is_vacation(dev.date_start, dev.date_over)
         ):
             session.query(Team).filter(
                 Team.id == dev.id
@@ -554,6 +606,7 @@ def update_all_issues():
     developers = session.query(Team.name).all()
     dev_names = [developer.name for developer in developers]
     insert_developers(TEAM, dev_names)
+    update_jira_url(date_created, JIRA_NICKNAME)
     # update vacation from file.xls
     update_developers_vacations(parsing_vacation(FILE_VACATIONS))
     # update dev status
