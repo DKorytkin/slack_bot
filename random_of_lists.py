@@ -36,7 +36,6 @@ def run():
     else:
         # TODO uncomment update_all_issues
         # update_all_issues()
-        # TODO very slow query
         dev_points = session.query(Team).order_by(Team.total.desc())
         total_all_team = session.query(func.sum(Team.total)).scalar()
         all_developer = session.query(Team.id).count()
@@ -63,9 +62,11 @@ def run():
             u'_Поинты команды = {}_'.format(total_all_team),
             u'_Среднее кол-во поинтов команды = {}_'.format(int(average))
         ]
-        # TODO add boost
         team_points = session.query(Team).order_by(Team.total.desc())
         for point in team_points:
+            all_points = point.total + (
+                point.vacation_boost if point.vacation_boost is not None else 0
+            )
             developer_vacation = ''
             if point.status == EnumStatus.vacation:
                 developer_vacation = u'Отпуск/Отгул'
@@ -74,7 +75,7 @@ def run():
             text_strings.append('<{url}|{name}> = {point}  {vacation}'.format(
                 url=point.jira_url,
                 name=point.name,
-                point=point.total,
+                point=all_points,
                 vacation=developer_vacation if developer_vacation else ''
             ))
         # TODO ссылка на гифку не раскрывается

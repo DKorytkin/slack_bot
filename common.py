@@ -65,7 +65,6 @@ def play_mario():
 
 
 def parse_vacation(message):
-    # TODO поменять паттерн ID_MARIO
     vacation_pattern = r'^<@{id}>\s+?(\w+)\sв\sотпуске\s\w\s' \
               r'(\d{day}-\d{month}-\d{year})\s\w\w\s' \
               r'(\d{day}-\d{month}-\d{year})'.format(

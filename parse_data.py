@@ -434,8 +434,9 @@ def update_status(querys):
         session.commit()
 
     exception_dev(querys)
-    # TODO add boost
-    min_point = session.query((func.min(Team.total))).filter(
+    min_point = session.query((func.min(
+        Team.total + Team.vacation_boost
+    ))).filter(
         Team.status == None
     ).scalar()
     developers = session.query(Team).order_by(Team.total.desc())
@@ -524,8 +525,6 @@ def choose_developer(query, sum_equal_points, sum_sentrys):
         if sum_equal_points == sum_sentrys:
             session.query(Team).update({'sentry': None}, False)
             session.commit()
-            # winner = dev.name
-            # session.query(Team).filter(Team.id == dev.id).update({'sentry': 1}, False)
         if dev.status == EnumStatus.orderly and dev.sentry is None:
             winner = dev.name
             session.query(Team).filter(
