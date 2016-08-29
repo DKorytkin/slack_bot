@@ -12,7 +12,6 @@ from objects import (
     TEAM,
     FILE_VACATIONS,
     issues_filter,
-    jira_main_url,
     date_created,
     JIRA_NICKNAME
 )
@@ -353,11 +352,22 @@ def update_developers_vacations(developer_vacations):
     """
     Обновляет поля начало и конец отпуска в Team из файла
     """
-    for vacations in developer_vacations:
-        if vacations.date_start is not None:
-            session.query(Team).filter(Team.id == vacations.ids).update({
-                'date_start': vacations.date_start,
-                'date_over': vacations.date_over
+    def is_actual_vacations(vacation_obj):
+        current = session.query(
+            Team.date_start
+        ).filter(
+            Team.id == vacation_obj.ids
+        ).first()
+        print('##########', vacation_obj.date_start, current.date_start)
+        return bool(
+            vacation_obj.date_start is not None and
+            vacation_obj.date_start >= current.date_start
+        )
+    for vacation in developer_vacations:
+        if is_actual_vacations(vacation):
+            session.query(Team).filter(Team.id == vacation.ids).update({
+                'date_start': vacation.date_start,
+                'date_over': vacation.date_over
             }, False)
 
     session.commit()

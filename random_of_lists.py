@@ -79,7 +79,7 @@ def run():
                 vacation=developer_vacation if developer_vacation else ''
             ))
         # TODO ссылка на гифку не раскрывается
-        text_strings.append('\n{}'.format(get_random_cat()))
+        #text_strings.append('\n{}'.format(get_random_cat()))
 
         return '\n'.join(text_strings)
 

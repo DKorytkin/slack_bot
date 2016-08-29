@@ -211,7 +211,7 @@ def is_help(danger_bug_poin):
         u'с 01-01-1900 по 01-02-1900` - _Set vacation_ ',
         u'`gif` ... - _receive a random GIF on request_',
         u'`game` - _play with Mario_',
-        u'_coming soon_',
+        u'_coming soon ..._',
     ]
     return '\n'.join(help_str)
 
@@ -228,9 +228,10 @@ def mario_requests(text):
         if remind:
             return remind
         else:
-            return "We don't have danger bugs (bug_point > {})".format(
-                danger_bug_poin
-            )
+            return "Cool!! :tada: We don't have danger bugs (bug_point > {})"\
+                .format(
+                    danger_bug_poin
+                )
     elif text == requests_bot_keys[4]:
         return is_help(danger_bug_poin)
 
