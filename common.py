@@ -166,8 +166,9 @@ def bugs_reminder(danger_bug_poin):
     """
     def is_danger_point(text):
         point = int(bugs_qareport[text]['qa_report_point'])
-        if point >= danger_bug_poin:
-            return True
+        return bool(
+            point >= danger_bug_poin
+        )
 
     bugs_qareport = get_danger_bugs()
     danger_bugs = []
