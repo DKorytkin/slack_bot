@@ -40,7 +40,10 @@ def get_version_prod(domen):
     url = 'https://ai.uaprom/stats/{}'.format(domen)
     req = get_request(url)
     req =req.json()
-    return req['by_version']['{}1'.format(domen)]['cfg']['title']
+    if domen not in ['uaprom', 'ruprom']:
+        return req['by_version']['{}2'.format(domen)]['cfg']['title']
+    else:
+        return req['by_version']['{}1'.format(domen)]['cfg']['title']
 
 
 def get_default_version(req=get_request(DEFAULT_VERSION)):
