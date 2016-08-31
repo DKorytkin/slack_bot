@@ -10,8 +10,8 @@ from websocket._exceptions import WebSocketConnectionClosedException
 from slackclient import SlackClient
 
 from random_of_lists import run
-from parse_data import mario_update_developers_vacations
-from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT, ID_MARIO
+from parse_data import mario_update_developers_vacations, update_all_issues
+from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT
 from common import (
     request_gif,
     get_mario_gif,
@@ -19,6 +19,11 @@ from common import (
     requests_bot_keys,
     mario_requests
 )
+
+TIME_RUN = '09:35:55'
+TIME_PARSE = '43'
+TIME_DANGER = '13:13:13'
+DAY_DANGER = 'Monday'
 
 
 def process_task(task):
@@ -81,6 +86,32 @@ def is_user(text):
         return text[0]['user']
 
 
+def run_regular_tasks():
+    def is_ready_parse(str_time):
+        return bool(
+            datetime.now().strftime('%M') == str_time
+        )
+
+    def is_ready_danger_bugs(str_day, str_time):
+        return bool(
+            datetime.now().strftime('%A') == str_day and
+            datetime.now().strftime('%H:%M:%S') == str_time
+        )
+
+    def is_ready_run(str_time):
+        return bool(
+            datetime.now().strftime('%H:%M:%S') == str_time
+        )
+
+    if is_ready_parse(TIME_PARSE):
+        print('RUN update_all_issues')
+        process_task(update_all_issues)
+    if is_ready_run(TIME_RUN):
+        process_task(send_message(bot_message=run()))
+    if is_ready_danger_bugs(DAY_DANGER, TIME_DANGER):
+        process_task(send_message(bot_message=mario_requests('team bugs')))
+
+
 class Message:
     def __init__(self, req):
         self.type = is_message(req)
@@ -114,14 +145,9 @@ if sc.rtm_connect():
     while True:
         time.sleep(1)
         req = slack_read(SLACK_TOKEN)
-        # TODO added regular task update_all_issues in time
         # TODO исправить время
         # регулярный запуск
-        if datetime.now().strftime('%H:%M:%S') == '10:10:55':
-            process_task(send_message(bot_message=run()))
-        if datetime.now().strftime("%A") == 'Friday' and \
-                        datetime.now().strftime('%H:%M:%S') == '10:16:55':
-            process_task(send_message(bot_message=mario_requests('team bugs')))
+        run_regular_tasks()
 
         if not req:
             continue
