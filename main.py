@@ -21,7 +21,7 @@ from common import (
 )
 
 TIME_RUN = '09:35:55'
-TIME_PARSE = '43'
+TIME_PARSE = '30'
 TIME_DANGER = '13:13:13'
 DAY_DANGER = 'Monday'
 
