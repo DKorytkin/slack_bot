@@ -10,6 +10,7 @@ from websocket._exceptions import WebSocketConnectionClosedException
 from slackclient import SlackClient
 
 from random_of_lists import run
+from objects import holidays, day_off
 from parse_data import mario_update_developers_vacations, update_all_issues
 from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT
 from common import (
@@ -87,6 +88,12 @@ def is_user(text):
 
 
 def run_regular_tasks():
+    def is_not_holiday():
+        return bool(
+            datetime.now().strftime("%d.%m.%y") not in holidays and
+            datetime.now().strftime("%A") not in day_off
+        )
+
     def is_ready_parse(str_time):
         return bool(
             datetime.now().strftime('%M') == str_time
@@ -106,7 +113,7 @@ def run_regular_tasks():
     if is_ready_parse(TIME_PARSE):
         print('RUN update_all_issues')
         process_task(update_all_issues)
-    if is_ready_run(TIME_RUN):
+    if is_ready_run(TIME_RUN) and is_not_holiday():
         process_task(send_message(bot_message=run()))
     if is_ready_danger_bugs(DAY_DANGER, TIME_DANGER):
         process_task(send_message(bot_message=mario_requests('team bugs')))
@@ -145,7 +152,6 @@ if sc.rtm_connect():
     while True:
         time.sleep(1)
         req = slack_read(SLACK_TOKEN)
-        # TODO исправить время
         # регулярный запуск
         run_regular_tasks()
 
