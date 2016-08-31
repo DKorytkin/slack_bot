@@ -112,6 +112,7 @@ def slack_read(token):
 sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
     while True:
+        time.sleep(1)
         req = slack_read(SLACK_TOKEN)
         # TODO added regular task update_all_issues in time
         # TODO исправить время
