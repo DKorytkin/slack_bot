@@ -360,9 +360,12 @@ def update_developers_vacations(developer_vacations):
         ).first()
         print('##########', vacation_obj.date_start, current.date_start)
         return bool(
-            vacation_obj.date_start is not None and
-            vacation_obj.date_start >= current.date_start
+            vacation_obj.date_start is not None and (
+                current.date_start is None or
+                vacation_obj.date_start >= current.date_start
+            )
         )
+
     for vacation in developer_vacations:
         if is_actual_vacations(vacation):
             session.query(Team).filter(Team.id == vacation.ids).update({
