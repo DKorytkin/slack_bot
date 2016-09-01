@@ -22,7 +22,7 @@ from common import (
 )
 
 TIME_RUN = '09:35:55'
-TIME_PARSE = '30'
+TIME_PARSE = ['30', '00']
 TIME_DANGER = '13:13:13'
 DAY_DANGER = 'Thursday'
 
@@ -94,9 +94,9 @@ def run_regular_tasks():
             datetime.now().strftime("%A") not in day_off
         )
 
-    def is_ready_parse(str_time):
+    def is_ready_parse(list_time):
         return bool(
-            datetime.now().strftime('%M') == str_time
+            datetime.now().strftime('%M') in list_time
         )
 
     def is_ready_danger_bugs(str_day, str_time):
