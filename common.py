@@ -213,7 +213,7 @@ def is_help(danger_bug_poin):
         u'`team bugs` - _team bugs > {} point_'.format(danger_bug_poin),
         u'`@mario SURNAME в отпуске '
         u'с 01-01-1900 по 01-02-1900` - _Set vacation_ ',
-        u'`gif` ... - _receive random GIF on request_',
+        u'`gif` ... - _receive random GIPHY on request_',
         u'`game` - _play with Mario_',
         u'_coming soon ..._',
     ]
