@@ -140,7 +140,7 @@ def get_danger_bugs():
     table_body = table.find('tbody')
     for i in table_body.find_all('tr'):
         task_name, link, summary, qa_report_point, implementer = [
-            None for i in range(5)
+                None for i in range(5)
             ]
         if is_task_name(i):
             task_name = is_task_name(i)

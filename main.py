@@ -24,7 +24,7 @@ from common import (
 TIME_RUN = '09:35:55'
 TIME_PARSE = '30'
 TIME_DANGER = '13:13:13'
-DAY_DANGER = 'Monday'
+DAY_DANGER = 'Thursday'
 
 
 def process_task(task):
@@ -140,18 +140,18 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=SLACK_TOKEN):
     )
 
 
-def slack_read(token):
+def slack_read():
     try:
         return sc.rtm_read()
     except (WebSocketConnectionClosedException, ConnectionResetError, OSError):
         print('!!! ERROR connection !!!')
-        slack_read(token)
+        slack_read()
 
 sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
     while True:
         time.sleep(1)
-        req = slack_read(SLACK_TOKEN)
+        req = slack_read()
         # регулярный запуск
         run_regular_tasks()
 
