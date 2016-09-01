@@ -12,7 +12,7 @@ from slackclient import SlackClient
 from random_of_lists import run
 from objects import holidays, day_off
 from parse_data import mario_update_developers_vacations, update_all_issues
-from slack_token import SLACK_TOKEN, ID_CHANNEL_CONTENT
+from slack_token import MARIO_TOKEN, ID_CHANNEL_CONTENT
 from common import (
     request_gif,
     get_mario_gif,
@@ -43,13 +43,13 @@ def is_message(text):
     return None
 
 
-def is_channel(text):
+def is_channel(text, channel):
     """
     text it's request
     filter by one channel
     """
     if 'channel' in text[0]:
-        if text[0]['channel'] == 'G0MGYKMA8':
+        if text[0]['channel'] == channel:
             return text[0]['channel']
     return None
 
@@ -122,13 +122,13 @@ def run_regular_tasks():
 class Message:
     def __init__(self, req):
         self.type = is_message(req)
-        self.channel = is_channel(req)
+        self.channel = is_channel(req, ID_CHANNEL_CONTENT)
         self.user = is_user(req)
         self.date_create = is_date(req)
         self.text = is_text(req)
 
 
-def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=SLACK_TOKEN):
+def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=MARIO_TOKEN):
     time.sleep(1)
     sc = SlackClient(token)
     sc.api_call(
@@ -148,7 +148,7 @@ def slack_read():
         slack_read()
 
 
-sc = SlackClient(SLACK_TOKEN)
+sc = SlackClient(MARIO_TOKEN)
 if sc.rtm_connect():
     while True:
         time.sleep(1)
@@ -163,7 +163,7 @@ if sc.rtm_connect():
             continue
         if not is_user(req):
             continue
-        if not is_channel(req):
+        if not is_channel(req, ID_CHANNEL_CONTENT):
             continue
 
         new_message = Message(req)
