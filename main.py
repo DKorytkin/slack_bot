@@ -3,6 +3,7 @@
 __author__ = 'Denis'
 
 import time
+import logging
 from datetime import datetime
 import concurrent.futures
 from websocket._exceptions import WebSocketConnectionClosedException
@@ -26,8 +27,15 @@ TIME_PARSE = ['30', '00']
 TIME_DANGER = '13:13:13'
 DAY_DANGER = 'Thursday'
 
+logging.basicConfig(
+    filename='mario.log',
+    format='%(asctime)s %(message)s',
+    datefmt='%m-%d-%Y %H:%M:%S'
+)
+
 
 def process_task(task):
+    logging.warning('runed task process_task')
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         pool.submit(task)
 
@@ -111,11 +119,13 @@ def run_regular_tasks():
         )
 
     if is_ready_parse(TIME_PARSE):
-        print('RUN update_all_issues')
+        logging.warning('RUN update_all_issues()')
         process_task(update_all_issues)
     if is_ready_run(TIME_RUN) and is_not_holiday():
+        logging.warning('RUN run()')
         process_task(send_message(bot_message=run()))
     if is_ready_danger_bugs(DAY_DANGER, TIME_DANGER):
+        logging.warning('RUN dunger_bugs()')
         process_task(send_message(bot_message=mario_requests('team bugs')))
 
 
@@ -138,13 +148,18 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=MARIO_TOKEN):
         username='Mario',
         icon_emoji=':mario:'
     )
+    logging.warning('SEND message: {}'.format(bot_message))
 
 
 def slack_read():
     try:
         return sc.rtm_read()
-    except (WebSocketConnectionClosedException, ConnectionResetError, OSError):
-        print('!!! ERROR connection !!!')
+    except (
+            WebSocketConnectionClosedException,
+            ConnectionResetError,
+            OSError
+    ) as e:
+        logging.error('!!! ERROR connection !!! \n {}'.format(e))
         slack_read()
 
 
@@ -168,7 +183,7 @@ if sc.rtm_connect():
 
         new_message = Message(req)
         print(new_message.text)
-
+        logging.warning('message_text: {}'.format(new_message.text))
         if new_message.text in requests_bot_keys:
             process_task(send_message(mario_requests(new_message.text)))
 
