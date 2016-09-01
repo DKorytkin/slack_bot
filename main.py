@@ -147,6 +147,7 @@ def slack_read():
         print('!!! ERROR connection !!!')
         slack_read()
 
+
 sc = SlackClient(SLACK_TOKEN)
 if sc.rtm_connect():
     while True:
