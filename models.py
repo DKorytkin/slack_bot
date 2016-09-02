@@ -80,7 +80,8 @@ class AllBugs(Base):
         self.in_dev = in_dev
         self.ready_for_test = ready_for_test
         self.elapsed_time_for_task_in_seconds = (
-            elapsed_time_for_task_in_seconds)
+                elapsed_time_for_task_in_seconds
+            )
         self.created = created
         self.developer_id = developer_id
 
