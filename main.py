@@ -35,7 +35,7 @@ logging.basicConfig(
 
 
 def process_task(task):
-    logging.warning('RUNED task process_task: {}'.format(task.__name__))
+    logging.warning('RUNED task process_task')
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         pool.submit(task)
 
