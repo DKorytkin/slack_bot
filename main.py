@@ -23,7 +23,7 @@ from common import (
 )
 
 TIME_RUN = '09:35:55'
-TIME_PARSE = ['30', '00']
+TIME_PARSE = ['30:00', '00:00']
 TIME_DANGER = '13:13:13'
 DAY_DANGER = 'Thursday'
 
@@ -35,7 +35,7 @@ logging.basicConfig(
 
 
 def process_task(task):
-    logging.warning('runed task process_task')
+    logging.warning('RUNED task process_task: {}'.format(task.__name__))
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         pool.submit(task)
 
@@ -104,7 +104,7 @@ def run_regular_tasks():
 
     def is_ready_parse(list_time):
         return bool(
-            datetime.now().strftime('%M') in list_time
+            datetime.now().strftime('%M:%S') in list_time
         )
 
     def is_ready_danger_bugs(str_day, str_time):
