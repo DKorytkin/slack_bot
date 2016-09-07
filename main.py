@@ -23,15 +23,17 @@ from common import (
 )
 
 TIME_RUN = '09:35:55'
-TIME_PARSE = ['30:00', '00:00']
+TIME_PARSE = ['45:00', '30:00', '15:00', '00:00']
 TIME_DANGER = '13:13:13'
 DAY_DANGER = 'Thursday'
 
 logging.basicConfig(
     filename='mario.log',
     format='%(asctime)s %(message)s',
-    datefmt='%m-%d-%Y %H:%M:%S'
+    datefmt='%d-%m-%Y %H:%M:%S'
 )
+
+logging.warning('START SLACK_BOT')
 
 
 def process_task(task):
@@ -120,7 +122,7 @@ def run_regular_tasks():
 
     if is_ready_parse(TIME_PARSE):
         logging.warning('RUN update_all_issues()')
-        process_task(update_all_issues)
+        process_task(update_all_issues())
     if is_ready_run(TIME_RUN) and is_not_holiday():
         logging.warning('RUN run()')
         process_task(send_message(bot_message=run()))
@@ -166,10 +168,11 @@ def slack_read():
 sc = SlackClient(MARIO_TOKEN)
 if sc.rtm_connect():
     while True:
-        time.sleep(1)
-        req = slack_read()
         # регулярный запуск
         run_regular_tasks()
+
+        req = slack_read()
+        time.sleep(1)
 
         if not req:
             continue
