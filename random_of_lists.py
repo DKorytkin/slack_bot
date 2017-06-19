@@ -2,15 +2,15 @@
 #  -*- coding: utf-8 -*-
 __author__ = 'Denis'
 
-from datetime import datetime
 from math import ceil
 import requests
 
 from sqlalchemy import func
+from sqlalchemy import desc
 
 from models import session, Team, EnumStatus
 from objects import CAT_ENDPOINT, DEFAULT_CAT
-from parse_data import update_status, choose_developer, update_all_issues
+from parse_data import update_status, choose_developer
 
 
 equal_type = EnumStatus
@@ -54,11 +54,16 @@ def run():
         u'_Поинты команды = {}_'.format(total_all_team),
         u'_Среднее кол-во поинтов команды = {}_'.format(int(average))
     ]
-    team_points = session.query(Team).order_by(Team.total.desc())
+    team_points = session.query(
+        (Team.total + Team.vacation_boost).label('all'),
+        Team.total,
+        Team.vacation_boost,
+        Team.name,
+        Team.status,
+        Team.jira_url
+    ).order_by(desc('all')).all()
+
     for point in team_points:
-        all_points = point.total + (
-            point.vacation_boost if point.vacation_boost is not None else 0
-        )
         developer_vacation = ''
         if point.status == EnumStatus.vacation:
             developer_vacation = u'Отпуск/Отгул'
@@ -67,7 +72,7 @@ def run():
         text_strings.append('<{url}|{name}> = {point}  {vacation}'.format(
             url=point.jira_url,
             name=point.name,
-            point=all_points,
+            point=point.all,
             vacation=developer_vacation if developer_vacation else ''
         ))
     # TODO ссылка на гифку не раскрывается

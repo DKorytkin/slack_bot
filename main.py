@@ -6,14 +6,14 @@ import time
 import logging
 from datetime import datetime
 import concurrent.futures
-from websocket._exceptions import WebSocketConnectionClosedException
+# from websocket._exceptions import WebSocketConnectionClosedException
 
 from slackclient import SlackClient
 
 from random_of_lists import run
 from objects import holidays, day_off
 from parse_data import mario_update_developers_vacations, update_all_issues
-from slack_token import MARIO_TOKEN, ID_CHANNEL_CONTENT
+from slack_token import SLACK_TOKEN_UAPROM, ID_CHANNEL_CONTENT_UAPROM
 from common import (
     request_gif,
     get_mario_gif,
@@ -25,19 +25,18 @@ from common import (
 TIME_RUN = '09:35:55'
 TIME_PARSE = ['45:00', '30:00', '15:00', '00:00']
 TIME_DANGER = '13:13:13'
-DAY_DANGER = 'Thursday'
+DAY_DANGER = 'Monday'
 
 logging.basicConfig(
     filename='mario.log',
     format='%(asctime)s %(message)s',
     datefmt='%d-%m-%Y %H:%M:%S'
 )
-
 logging.warning('START SLACK_BOT')
 
 
 def process_task(task):
-    logging.warning('RUNED task process_task')
+    logging.warning('runed task process_task')
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         pool.submit(task)
 
@@ -134,13 +133,17 @@ def run_regular_tasks():
 class Message:
     def __init__(self, req):
         self.type = is_message(req)
-        self.channel = is_channel(req, ID_CHANNEL_CONTENT)
+        self.channel = is_channel(req, ID_CHANNEL_CONTENT_UAPROM)
         self.user = is_user(req)
         self.date_create = is_date(req)
         self.text = is_text(req)
 
 
-def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=MARIO_TOKEN):
+def send_message(
+        bot_message,
+        channel=ID_CHANNEL_CONTENT_UAPROM,
+        token=SLACK_TOKEN_UAPROM
+):
     time.sleep(1)
     sc = SlackClient(token)
     sc.api_call(
@@ -153,56 +156,60 @@ def send_message(bot_message, channel=ID_CHANNEL_CONTENT, token=MARIO_TOKEN):
     logging.warning('SEND message: {}'.format(bot_message))
 
 
-def slack_read():
-    try:
-        return sc.rtm_read()
-    except (
-            WebSocketConnectionClosedException,
-            ConnectionResetError,
-            OSError
-    ) as e:
-        logging.error('!!! ERROR connection !!! \n {}'.format(e))
-        slack_read()
+# def slack_read():
+#     try:
+#         return sc.rtm_read()
+#     except (
+#             WebSocketConnectionClosedException,
+#             ConnectionResetError,
+#             OSError
+#     ) as e:
+#         logging.error('!!! ERROR connection !!! \n {}'.format(e))
+#         slack_read()
 
 
-sc = SlackClient(MARIO_TOKEN)
-if sc.rtm_connect():
-    while True:
-        # регулярный запуск
-        run_regular_tasks()
+def slack_actions():
+    sc = SlackClient(SLACK_TOKEN_UAPROM)
+    if sc.rtm_connect():
+        while True:
+            # регулярный запуск
+            run_regular_tasks()
 
-        req = slack_read()
-        time.sleep(1)
+            req = sc.rtm_read()
+            time.sleep(1)
 
-        if not req:
-            continue
-        print(req)
-        if not is_message(req):
-            continue
-        if not is_user(req):
-            continue
-        if not is_channel(req, ID_CHANNEL_CONTENT):
-            continue
+            if not req:
+                continue
+            if not is_message(req):
+                continue
+            if not is_user(req):
+                continue
+            if not is_channel(req, ID_CHANNEL_CONTENT_UAPROM):
+                continue
 
-        new_message = Message(req)
-        print(new_message.text)
-        logging.warning('message_text: {}'.format(new_message.text))
-        if new_message.text in requests_bot_keys:
-            process_task(send_message(mario_requests(new_message.text)))
+            new_message = Message(req)
+            logging.warning('message_text: {}'.format(new_message.text))
+            if new_message.text in requests_bot_keys:
+                process_task(send_message(mario_requests(new_message.text)))
 
-        if 'gif' in new_message.text:
-            process_task(
-                send_message(
-                    get_mario_gif(request_gif(new_message.text))
-                )
-            )
+            # if 'gif' in new_message.text:
+            #     process_task(
+            #         send_message(
+            #             get_mario_gif(request_gif(new_message.text))
+            #         )
+            #     )
 
-        if parse_vacation(new_message.text):
-            data_vacation = parse_vacation(new_message.text)
-            process_task(
-                    mario_update_developers_vacations(
-                        vacation_data=data_vacation
+            if parse_vacation(new_message.text):
+                data_vacation = parse_vacation(new_message.text)
+                process_task(
+                        mario_update_developers_vacations(
+                            vacation_data=data_vacation
+                        )
                     )
-                )
-else:
-    print('drop connection, invalid token')
+    else:
+        print('drop connection, invalid token')
+
+try:
+    slack_actions()
+except:
+    slack_actions()

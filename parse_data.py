@@ -5,6 +5,7 @@ __author__ = 'Denis'
 from collections import namedtuple
 from datetime import datetime, date
 
+from sqlalchemy import func
 import xlrd
 
 from objects import (
@@ -12,6 +13,7 @@ from objects import (
     TEAM,
     FILE_VACATIONS,
     issues_filter,
+    developer_filter_template,
     date_created,
     JIRA_NICKNAME
 )
@@ -24,6 +26,8 @@ from models import (
     EnumSentry
 )
 
+
+TEACHING_DAY = 'Wednesday'
 Vacations = namedtuple('Vacations', ['ids', 'date_start', 'date_over'])
 Issue = namedtuple(
     "Issue", [
@@ -308,22 +312,14 @@ def insert_developers(team, dev_name_overlap):
 def update_jira_url(jira_date_created, dict_developers):
     developers = session.query(Team.id).all()
     for developer in developers:
-        jira_url = 'https://jira.uaprom/issues/?jql=' \
-                   'project%20%3D%20PR%20AND%20' \
-                   'issuetype%20%3D%20Bug%20AND%20' \
-                   'created%20%3E%3D%20{created}%20AND%20' \
-                   'Developer%20%3D%20%22{dev}%22' \
-                   '%20ORDER%20BY%20resolved%20DESC'.format(
-            created=jira_date_created,
-            dev=dict_developers[developer.id]
+        jira_url = developer_filter_template.format(
+            jira_date_created,
+            dict_developers[developer.id]
         )
         url = jira_url
         session.query(Team).filter(
             Team.id == developer.id
-        ).update({
-            'jira_url': url
-        }, False
-        )
+        ).update({'jira_url': url}, False)
     session.commit()
 
 
@@ -358,7 +354,6 @@ def update_developers_vacations(developer_vacations):
         ).filter(
             Team.id == vacation_obj.ids
         ).first()
-        print('##########', vacation_obj.date_start, current.date_start)
         return bool(
             vacation_obj.date_start is not None and (
                 current.date_start is None or
@@ -450,36 +445,14 @@ def is_vacation(start, over):
 
 def is_teaching(dev_id):
     return bool(
-        datetime.now().strftime('%A') == 'Thursday' and dev_id == 3
+        datetime.now().strftime('%A') == TEACHING_DAY and dev_id == 3
     )
 
 
 def is_min_point():
-    total_points = session.query(
-        Team.id,
-        Team.total
-    ).filter(
-        Team.status == None
-    ).all()
-    vacation_boosts = session.query(
-        Team.id,
-        Team.vacation_boost
-    ).filter(
-        Team.status == None
-    ).all()
-    list_sums = []
-    iteration = 0
-    for total_point in total_points:
-        if total_point.id == vacation_boosts[iteration].id:
-            if vacation_boosts[iteration].vacation_boost:
-                sum_data = (
-                    total_point.total + vacation_boosts[iteration].vacation_boost
-            )
-            else:
-                sum_data = total_point.total
-            list_sums.append(sum_data)
-        iteration += 1
-    return min(list_sums)
+    return session.query(func.min((Team.vacation_boost + Team.total))).filter(
+        Team.status.is_(None)
+    ).scalar()
 
 
 def is_boost(dev_query):
@@ -550,13 +523,12 @@ def get_list_developer_boosts(developer):
     """
     get list bug ids from boost_vacations by developer_id
     """
-    list_developer_bosts = []
+    list_developer_boosts = []
     developer_bosts = session.query(BoostVacation).filter(
-        BoostVacation.developer_id == developer.id,
-    )
-    for bost in developer_bosts:
-        list_developer_bosts.extend(bost.list_issues)
-    return list_developer_bosts
+        BoostVacation.developer_id == developer.id)
+    for boost in developer_bosts:
+        list_developer_boosts.extend(boost.list_issues)
+    return list_developer_boosts
 
 
 def get_sum_points(list_bug_ids):
@@ -594,15 +566,11 @@ def update_developers_boost():
             continue
         sum_points = get_sum_points(developer_boost)
         # TODO update formula from statistics import median
-        print('sum', sum_points, 'count', count_developers)
         point = int(sum(sum_points) / count_developers)
-        print('###########', point)
-        if point is None:
-            continue
         session.query(Team).filter(
             Team.id == developer.id
         ).update({
-            'vacation_boost': point
+            'vacation_boost': point if point is not None else 0
         }, False)
         session.commit()
 
@@ -612,7 +580,6 @@ def choose_developer(query, sum_equal_points, sum_sentrys):
     if have some developers equal points
     """
     for dev in query:
-        print(dev)
         if sum_equal_points == sum_sentrys:
             session.query(Team).update({'sentry': None}, False)
             session.commit()
