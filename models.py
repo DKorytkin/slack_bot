@@ -43,6 +43,7 @@ class EnumStatus(Enum):
     orderly = 1
     vacation = 2
     teaching = 3
+    passing = 4
 
 
 class EnumSentry(Enum):
@@ -80,8 +81,7 @@ class AllBugs(Base):
         self.in_dev = in_dev
         self.ready_for_test = ready_for_test
         self.elapsed_time_for_task_in_seconds = (
-                elapsed_time_for_task_in_seconds
-            )
+            elapsed_time_for_task_in_seconds)
         self.created = created
         self.developer_id = developer_id
 
@@ -112,7 +112,7 @@ class Team(Base):
     minor = Column(Integer)
     trivial = Column(Integer)
     total = Column(Integer)
-    vacation_boost = Column(Integer)
+    vacation_boost = Column(Integer, default=0)
     name = Column(String(100))
     date_start = Column(Date)
     date_over = Column(Date)

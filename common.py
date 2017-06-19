@@ -11,10 +11,10 @@ from bs4 import BeautifulSoup
 
 from random_of_lists import run
 from objects import DEFAULT_VERSION, QA_REPORT
-from slack_token import ID_MARIO
+from slack_token import ID_MARIO_UAPROM
 
 
-requests_bot_keys = ['default', 'game', u'person on duty', 'team bugs', 'help']
+requests_bot_keys = ['game', u'who is on duty today?', 'team bugs', 'help']
 Vacations = namedtuple('Vacations', ['dev_name', 'date_start', 'date_over'])
 Absent = namedtuple('Absent', ['dev_name', 'status'])
 danger_bug_poin = 150
@@ -40,10 +40,10 @@ def get_version_prod(domen):
     url = 'https://ai.uaprom/stats/{}'.format(domen)
     req = get_request(url)
     req =req.json()
-    if domen not in ['uaprom', 'ruprom']:
-        return req['by_version']['{}2'.format(domen)]['cfg']['title']
-    else:
-        return req['by_version']['{}1'.format(domen)]['cfg']['title']
+    # if domen not in ['uaprom', 'ruprom']:
+    #     return req['by_version']['{}2'.format(domen)]['cfg']['title']
+    # else:
+    return req['by_version']['{}2'.format(domen)]['cfg']['title']
 
 
 def get_default_version(req=get_request(DEFAULT_VERSION)):
@@ -68,18 +68,21 @@ def play_mario():
 
 
 def parse_vacation(message):
-    vacation_pattern = r'^<@{id}>\s+?(\w+)\sв\sотпуске\s\w\s' \
-              r'(\d{day}-\d{month}-\d{year})\s\w\w\s' \
-              r'(\d{day}-\d{month}-\d{year})'.format(
-        id=ID_MARIO,
-        day='{1,2}',
-        month='{1,2}',
-        year='{2,4}'
+    vacation_pattern = (
+        r'^<@{id}>\s+?(\w+)\sв\sотпуске\s\w\s'
+        r'(\d{day}-\d{month}-\d{year})\s\w\w\s'
+        r'(\d{day}-\d{month}-\d{year})'.format(
+            id=ID_MARIO_UAPROM,
+            day='{1,2}',
+            month='{1,2}',
+            year='{2,4}'
+        )
     )
-    absent_pattern = r'^<@{id}>\s+?(\w+)\s' \
-                     r'(в отгуле|отсутствует|сегодня не будет|' \
-                     r'работает из дому|' \
-                     r'на дому|преподает|нет на месте)'.format(id=ID_MARIO)
+    absent_pattern = (
+        r'^<@{id}>\s+?(\w+)\s'
+        r'(в отгуле|отсутствует|сегодня не будет|работает из дому|'
+        r'на дому|преподает|нет на месте)'.format(id=ID_MARIO_UAPROM)
+    )
     if re.search(
             pattern=vacation_pattern,
             string=message,
@@ -188,28 +191,28 @@ def bugs_reminder(danger_bug_poin):
 
 
 def get_versions():
-    verision_str = '\n `default` - {default}' \
-                   '\n*production:*' \
-                   '\n\t `uaprom` - {uaprom}' \
-                   '\n\t `ruprom` - {ruprom}' \
-                   '\n\t `belprom` - {belprom}' \
-                   '\n\t `kazprom` - {kazprom}' \
-                   '\n\t `mdprom` - {mdprom}'.format(
-                        default=get_default_version(),
-                        uaprom=get_version_prod('uaprom'),
-                        ruprom=get_version_prod('ruprom'),
-                        belprom=get_version_prod('byprom'),
-                        kazprom=get_version_prod('kzprom'),
-                        mdprom=get_version_prod('mdprom')
-                   )
-
+    verision_str = (
+        '\n `default` - {default}'
+        '\n*production:*'
+        '\n\t `uaprom` - {uaprom}'
+        '\n\t `ruprom` - {ruprom}'
+        '\n\t `belprom` - {belprom}'
+        '\n\t `kazprom` - {kazprom}'
+        '\n\t `mdprom` - {mdprom}'.format(
+            default=get_default_version(),
+            uaprom=get_version_prod('uaprom'),
+            ruprom=get_version_prod('ruprom'),
+            belprom=get_version_prod('byprom'),
+            kazprom=get_version_prod('kzprom'),
+            mdprom=get_version_prod('mdprom')
+        )
+    )
     return verision_str
 
 
 def is_help(danger_bug_poin):
     help_str = [
-        u'`default` - _return Default version_',
-        u'`person on duty` - _provides person on duty for fix bugs_ :bug:',
+        u'`who is on duty today?` - _provides person on duty for fix bugs_ :bug:',
         u'`team bugs` - _team bugs > {} point_'.format(danger_bug_poin),
         u'`@mario SURNAME в отпуске '
         u'с 01-01-1900 по 01-02-1900` - _Set vacation_ ',
@@ -222,12 +225,10 @@ def is_help(danger_bug_poin):
 
 def mario_requests(text):
     if text == requests_bot_keys[0]:
-        return get_versions()
-    elif text == requests_bot_keys[1]:
         return play_mario()
-    elif text == requests_bot_keys[2]:
+    elif text == requests_bot_keys[1]:
         return run()
-    elif text == requests_bot_keys[3]:
+    elif text == requests_bot_keys[2]:
         remind = bugs_reminder(danger_bug_poin)
         if remind:
             return remind
@@ -236,7 +237,7 @@ def mario_requests(text):
                 .format(
                     danger_bug_poin
                 )
-    elif text == requests_bot_keys[4]:
+    elif text == requests_bot_keys[3]:
         return is_help(danger_bug_poin)
 
 
